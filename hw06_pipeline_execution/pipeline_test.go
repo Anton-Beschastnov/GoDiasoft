@@ -91,3 +91,72 @@ func TestPipeline(t *testing.T) {
 		require.Less(t, int64(elapsed), int64(abortDur)+int64(fault))
 	})
 }
+
+func TestPipeline_EmptyStages(t *testing.T) {
+	in := make(Bi)
+	data := []int{1, 2, 3}
+	go func() {
+		for _, v := range data {
+			in <- v
+		}
+		close(in)
+	}()
+
+	var result []int
+	for s := range ExecutePipeline(in, nil) {
+		result = append(result, s.(int))
+	}
+	require.Equal(t, data, result)
+}
+
+func TestPipeline_ImmediateDone(t *testing.T) {
+	in := make(Bi)
+	done := make(Bi)
+	close(done)
+
+	stage := func(in In) Out {
+		out := make(Bi)
+		go func() {
+			defer close(out)
+			for v := range in {
+				out <- v
+			}
+		}()
+		return out
+	}
+
+	out := ExecutePipeline(in, done, stage)
+	var count int
+	for range out {
+		count++
+	}
+	require.Equal(t, 0, count)
+}
+
+func TestPipeline_LeakCheck(t *testing.T) {
+	in := make(Bi)
+	done := make(Bi)
+	go func() {
+		time.Sleep(time.Millisecond * 50)
+		close(done)
+	}()
+
+	stage := func(in In) Out {
+		out := make(Bi)
+		go func() {
+			defer close(out)
+			for v := range in {
+				out <- v
+			}
+		}()
+		return out
+	}
+
+	out := ExecutePipeline(in, done, stage)
+	select {
+	case _, ok := <-out:
+		require.False(t, ok)
+	case <-time.After(time.Second):
+		t.Fatal("pipeline hung")
+	}
+}
