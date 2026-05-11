@@ -1,3 +1,3 @@
-module github.com/fixme_my_friend/hw07_file_copying
+module github.com/Anton-Beschastnov/GoDiasoft
 
 go 1.19
