@@ -12,16 +12,14 @@ var ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
 type Task func() error
 
 func Run(tasks []Task, n, m int) error {
-	ignoreErrors := m <= 0
-
 	if len(tasks) == 0 {
 		return nil
 	}
 
+	ignoreErrors := m <= 0
 	taskChan := make(chan Task, n)
 	var wg sync.WaitGroup
 	var errorsCount atomic.Int32
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -29,51 +27,49 @@ func Run(tasks []Task, n, m int) error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case task, ok := <-taskChan:
-					if !ok {
-						return
-					}
-					if err := task(); err != nil {
-						if !ignoreErrors {
-							newCount := errorsCount.Add(1)
-							if newCount > int32(m) {
-								cancel()
-								return
-							}
-						}
-					}
-				}
-			}
+			worker(ctx, taskChan, &errorsCount, m, ignoreErrors, cancel)
 		}()
 	}
 
-	sendErr := error(nil)
+	return feeder(ctx, tasks, taskChan, &wg, &errorsCount, m, ignoreErrors)
+}
+
+func worker(ctx context.Context, tasks <-chan Task, errCnt *atomic.Int32, m int, ignore bool, cancel context.CancelFunc) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case task, ok := <-tasks:
+			if !ok {
+				return
+			}
+			if err := task(); err != nil && !ignore {
+				if errCnt.Add(1) > int32(m) {
+					cancel()
+					return
+				}
+			}
+		}
+	}
+}
+
+func feeder(ctx context.Context, tasks []Task, ch chan Task, wg *sync.WaitGroup, errCnt *atomic.Int32, m int, ignore bool) error {
+	var sendErr error
 	for _, task := range tasks {
 		select {
 		case <-ctx.Done():
 			sendErr = ErrErrorsLimitExceeded
-			break
-		case taskChan <- task:
+		case ch <- task:
 		}
 		if sendErr != nil {
 			break
 		}
 	}
-
-	close(taskChan)
+	close(ch)
 	wg.Wait()
 
-	if sendErr != nil {
-		return sendErr
-	}
-
-	if !ignoreErrors && errorsCount.Load() > int32(m) {
+	if sendErr != nil || (!ignore && errCnt.Load() > int32(m)) {
 		return ErrErrorsLimitExceeded
 	}
-
 	return nil
 }
