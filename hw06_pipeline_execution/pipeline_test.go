@@ -102,7 +102,7 @@ func TestPipeline_EmptyStages(t *testing.T) {
 		close(in)
 	}()
 
-	var result []int
+	result := make([]int, 0, len(data))
 	for s := range ExecutePipeline(in, nil) {
 		result = append(result, s.(int))
 	}
