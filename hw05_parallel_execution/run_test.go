@@ -84,12 +84,12 @@ func TestRun(t *testing.T) {
 		}
 
 		workersCount := 5
-		maxErrorsCount := 0 // m=0 означает игнорировать ошибки
+		maxErrorsCount := 0
 
 		err := Run(tasks, workersCount, maxErrorsCount)
 
-		require.NoError(t, err, "при m=0 ошибки игнорируются, ошибка не возвращается")
-		require.Equal(t, int32(tasksCount), runTasksCount, "все задачи должны выполниться")
+		require.NoError(t, err)
+		require.Equal(t, int32(tasksCount), runTasksCount)
 	})
 
 	t.Run("m = -1 means ignore errors", func(t *testing.T) {
@@ -106,7 +106,7 @@ func TestRun(t *testing.T) {
 		}
 
 		workersCount := 3
-		maxErrorsCount := -1 // отрицательное значение тоже игнорирует ошибки
+		maxErrorsCount := -1
 
 		err := Run(tasks, workersCount, maxErrorsCount)
 
@@ -133,7 +133,7 @@ func TestRun(t *testing.T) {
 			})
 		}
 
-		workersCount := 10 // воркеров больше чем задач
+		workersCount := 10
 		err := Run(tasks, workersCount, 1)
 
 		require.NoError(t, err)
@@ -159,14 +159,10 @@ func TestRun(t *testing.T) {
 		err := Run(tasks, workersCount, maxErrorsCount)
 
 		require.True(t, errors.Is(err, ErrErrorsLimitExceeded))
-		// Выполнится не более n + m задач
 		require.LessOrEqual(t, runTasksCount, int32(workersCount+maxErrorsCount))
 	})
 
 	t.Run("concurrency test with Eventually", func(t *testing.T) {
-		// Тест проверяет конкурентность выполнения без использования time.Sleep
-		// Используем require.Eventually для проверки что несколько задач выполняются одновременно
-
 		tasksCount := 20
 		tasks := make([]Task, 0, tasksCount)
 
@@ -174,14 +170,11 @@ func TestRun(t *testing.T) {
 		var maxConcurrent atomic.Int32
 		var currentConcurrent atomic.Int32
 
-		// Канал для контроля завершения задач
 		taskDone := make(chan struct{}, tasksCount)
 
 		for i := 0; i < tasksCount; i++ {
 			tasks = append(tasks, func() error {
-				// Увеличиваем счетчик текущих выполняемых задач
 				cur := currentConcurrent.Add(1)
-				// Обновляем максимум одновременно выполняемых задач
 				for {
 					old := maxConcurrent.Load()
 					if cur <= old || maxConcurrent.CompareAndSwap(old, cur) {
@@ -189,7 +182,6 @@ func TestRun(t *testing.T) {
 					}
 				}
 
-				// Ждем пока не придет сигнал завершения
 				<-taskDone
 
 				currentConcurrent.Add(-1)
@@ -201,30 +193,23 @@ func TestRun(t *testing.T) {
 		workersCount := 4
 		maxErrorsCount := 1
 
-		// Запускаем Run в горутине
 		done := make(chan error, 1)
 		go func() {
 			done <- Run(tasks, workersCount, maxErrorsCount)
 		}()
 
-		// Ждем пока не увидим что несколько задач выполняются одновременно
 		require.Eventually(t, func() bool {
 			return maxConcurrent.Load() > 1
-		}, time.Second*2, time.Millisecond*10, "задачи должны выполняться конкурентно")
+		}, time.Second*2, time.Millisecond*10)
 
-		// Разрешаем задачам завершиться
 		close(taskDone)
 
-		// Ждем завершения Run
 		err := <-done
 		require.NoError(t, err)
 		require.Equal(t, int32(tasksCount), completedCount.Load())
 	})
 
 	t.Run("stop on error limit - detailed scenario", func(t *testing.T) {
-		// Проверяем сценарий из задания: n=4, m=2
-		// Должно выполниться не более n+m=6 задач
-
 		tasksCount := 20
 		tasks := make([]Task, 0, tasksCount)
 
@@ -245,8 +230,6 @@ func TestRun(t *testing.T) {
 		err := Run(tasks, workersCount, maxErrorsCount)
 
 		require.True(t, errors.Is(err, ErrErrorsLimitExceeded))
-		// Выполнится не более n + m = 6 задач
-		require.LessOrEqual(t, runTasksCount.Load(), int32(workersCount+maxErrorsCount),
-			"выполнено больше задач чем n+m")
+		require.LessOrEqual(t, runTasksCount.Load(), int32(workersCount+maxErrorsCount))
 	})
 }
