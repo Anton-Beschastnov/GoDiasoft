@@ -34,7 +34,11 @@ func Run(tasks []Task, n, m int) error {
 	return feeder(ctx, tasks, taskChan, &wg, &errorsCount, m, ignoreErrors)
 }
 
-func worker(ctx context.Context, tasks <-chan Task, errCnt *atomic.Int32, m int, ignore bool, cancel context.CancelFunc) {
+// Перенос строки в аргументах, чтобы избежать ошибки lll
+func worker(
+	ctx context.Context, tasks <-chan Task, errCnt *atomic.Int32,
+	m int, ignore bool, cancel context.CancelFunc,
+) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -53,7 +57,11 @@ func worker(ctx context.Context, tasks <-chan Task, errCnt *atomic.Int32, m int,
 	}
 }
 
-func feeder(ctx context.Context, tasks []Task, ch chan Task, wg *sync.WaitGroup, errCnt *atomic.Int32, m int, ignore bool) error {
+// Перенос строки в аргументах и условии return
+func feeder(
+	ctx context.Context, tasks []Task, ch chan Task,
+	wg *sync.WaitGroup, errCnt *atomic.Int32, m int, ignore bool,
+) error {
 	var sendErr error
 	for _, task := range tasks {
 		select {
