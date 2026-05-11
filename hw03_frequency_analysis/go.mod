@@ -1,4 +1,4 @@
-module github.com/fixme_my_friend/hw03_frequency_analysis
+module github.com/Anton-Beschastnov/GoDiasoft
 
 go 1.19
 
