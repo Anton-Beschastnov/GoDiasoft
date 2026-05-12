@@ -15,28 +15,33 @@ var (
 func Copy(fromPath, toPath string, offset, limit int64) error {
 	src, err := os.Open(fromPath)
 	if err != nil {
-		return fmt.Errorf("open source: %w", err)
+		return fmt.Errorf("open source file: %w", err)
 	}
 	defer src.Close()
 
 	info, err := src.Stat()
 	if err != nil {
-		return fmt.Errorf("stat source: %w", err)
+		return fmt.Errorf("get file info: %w", err)
 	}
 
 	if !info.Mode().IsRegular() {
 		return ErrUnsupportedFile
 	}
 
-	if offset > info.Size() {
+	fileSize := info.Size()
+
+	if offset < 0 {
+		return fmt.Errorf("offset cannot be negative: %d", offset)
+	}
+	if offset > fileSize {
 		return ErrOffsetExceedsFileSize
 	}
 
 	if _, err := src.Seek(offset, io.SeekStart); err != nil {
-		return fmt.Errorf("seek: %w", err)
+		return fmt.Errorf("seek to offset: %w", err)
 	}
 
-	copySize := info.Size() - offset
+	copySize := fileSize - offset
 	if limit > 0 && limit < copySize {
 		copySize = limit
 	}
@@ -44,7 +49,7 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	if copySize <= 0 {
 		dst, err := os.Create(toPath)
 		if err != nil {
-			return fmt.Errorf("create destination: %w", err)
+			return fmt.Errorf("create destination file: %w", err)
 		}
 		defer dst.Close()
 		return nil
@@ -52,42 +57,47 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 
 	dst, err := os.Create(toPath)
 	if err != nil {
-		return fmt.Errorf("create destination: %w", err)
+		return fmt.Errorf("create destination file: %w", err)
 	}
 	defer dst.Close()
 
-	return copyWithProgress(src, dst, copySize)
-}
+	progressReader := &ProgressReader{
+		reader: src,
+		total:  copySize,
+	}
 
-func copyWithProgress(src io.Reader, dst io.Writer, total int64) error {
-	var current int64
-	buf := make([]byte, 32*1024)
-
-	for current < total {
-		remaining := total - current
-		toRead := int64(len(buf))
-		if toRead > remaining {
-			toRead = remaining
-		}
-
-		n, err := src.Read(buf[:toRead])
-		if n > 0 {
-			if _, writeErr := dst.Write(buf[:n]); writeErr != nil {
-				return writeErr
-			}
-			current += int64(n)
-			fmt.Printf("\rCopying: %.2f%%", float64(current)/float64(total)*100)
-		}
-
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				fmt.Println()
-				return nil
-			}
-			return err
-		}
+	_, err = io.CopyN(dst, progressReader, copySize)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return fmt.Errorf("copy data: %w", err)
 	}
 
 	fmt.Println()
+
 	return nil
+}
+
+type ProgressReader struct {
+	reader  io.Reader
+	total   int64
+	current int64
+}
+
+func (pr *ProgressReader) Read(p []byte) (int, error) {
+	if pr.current >= pr.total {
+		return 0, io.EOF
+	}
+
+	remaining := pr.total - pr.current
+	if int64(len(p)) > remaining {
+		p = p[:remaining]
+	}
+
+	n, err := pr.reader.Read(p)
+	if n > 0 {
+		pr.current += int64(n)
+		percent := float64(pr.current) / float64(pr.total) * 100
+		fmt.Printf("\rCopying: %.2f%%", percent)
+	}
+
+	return n, err
 }

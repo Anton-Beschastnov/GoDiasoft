@@ -21,11 +21,11 @@ func init() {
 func main() {
 	flag.Parse()
 	if from == "" || to == "" {
-		fmt.Println("Error: from and to flags are required")
+		fmt.Fprintln(os.Stderr, "Error: -from and -to flags are required")
 		os.Exit(1)
 	}
 	if err := Copy(from, to, offset, limit); err != nil {
-		fmt.Printf("Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
