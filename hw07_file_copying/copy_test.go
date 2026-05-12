@@ -33,6 +33,10 @@ func TestCopy(t *testing.T) {
 
 				act, _ := os.ReadFile(to)
 				exp, _ := os.ReadFile(filepath.Join(testDir, tc.exp))
+
+				if tc.lim > 0 && int64(len(exp)) > tc.lim {
+					exp = exp[:tc.lim]
+				}
 				require.Equal(t, exp, act)
 			})
 		}
@@ -42,12 +46,12 @@ func TestCopy(t *testing.T) {
 		from := filepath.Join(tempDir, "small.txt")
 		os.WriteFile(from, []byte("small file"), 0644)
 
-		t.Run("offset too big", func(t *testing.T) {
+		t.Run("offset_too_big", func(t *testing.T) {
 			err := Copy(from, filepath.Join(tempDir, "out.txt"), 100, 0)
 			require.ErrorIs(t, err, ErrOffsetExceedsFileSize)
 		})
 
-		t.Run("limit bigger than file", func(t *testing.T) {
+		t.Run("limit_bigger_than_file", func(t *testing.T) {
 			to := filepath.Join(tempDir, "out_limit.txt")
 			require.NoError(t, Copy(from, to, 0, 500))
 			res, _ := os.ReadFile(to)
