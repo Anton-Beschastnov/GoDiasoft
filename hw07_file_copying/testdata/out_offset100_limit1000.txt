@@ -1,4 +1,5 @@
-our installation
+ols
+Test your installation
 Installing extra Go versions
 Uninstalling Go
 Getting help
@@ -14,5 +15,4 @@ Go binary distributions are available for these supported operating systems and 
 
 Operating system	Architectures	Notes
 FreeBSD 10.3 or later	amd64, 386	Debian GNU/kFreeBSD not supported
-Linux 2.6.23 or later with glibc	amd64, 386, arm, arm64,
-s39
+Linux 2.6.23 or later with glibc	
