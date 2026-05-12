@@ -1,70 +1,57 @@
 package main
 
 import (
-	"github.com/stretchr/testify/require"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestCopy(t *testing.T) {
-	// Place your code here.
-}
-
-func TestCopy_TestData(t *testing.T) {
 	testDir := "testdata"
-	input := filepath.Join(testDir, "input.txt")
 	tempDir := t.TempDir()
 
-	testCases := []struct {
-		name     string
-		offset   int64
-		limit    int64
-		expected string
-	}{
-		{"full copy", 0, 0, "out_offset0_limit0.txt"},
-		{"limit 10", 0, 10, "out_offset0_limit10.txt"},
-		{"limit 1000", 0, 1000, "out_offset0_limit1000.txt"},
-		{"limit 10000", 0, 10000, "out_offset0_limit10000.txt"},
-		{"offset 100 limit 1000", 100, 1000, "out_offset100_limit1000.txt"},
-		{"offset 6000 limit 1000", 6000, 1000, "out_offset6000_limit1000.txt"},
-	}
+	t.Run("TestData", func(t *testing.T) {
+		testCases := []struct {
+			name, exp string
+			off, lim  int64
+		}{
+			{"full", "out_offset0_limit0.txt", 0, 0},
+			{"limit10", "out_offset0_limit10.txt", 0, 10},
+			{"limit1000", "out_offset0_limit1000.txt", 0, 1000},
+			{"limit10000", "out_offset0_limit10000.txt", 0, 10000},
+			{"off100_lim1000", "out_offset100_limit1000.txt", 100, 1000},
+			{"off6000_lim1000", "out_offset6000_limit1000.txt", 6000, 1000},
+		}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			toPath := filepath.Join(tempDir, tc.expected)
-			expectedPath := filepath.Join(testDir, tc.expected)
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				to := filepath.Join(tempDir, tc.exp)
+				err := Copy(filepath.Join(testDir, "input.txt"), to, tc.off, tc.lim)
+				require.NoError(t, err)
 
-			err := Copy(input, toPath, tc.offset, tc.limit)
-			require.NoError(t, err)
-
-			actual, err := os.ReadFile(toPath)
-			require.NoError(t, err)
-
-			expected, err := os.ReadFile(expectedPath)
-			require.NoError(t, err)
-
-			require.Equal(t, expected, actual)
-		})
-	}
-}
-
-func TestCopy_Validation(t *testing.T) {
-	tempDir := t.TempDir()
-	fromPath := filepath.Join(tempDir, "small.txt")
-	os.WriteFile(fromPath, []byte("small file"), 0644)
-
-	t.Run("offset too big", func(t *testing.T) {
-		err := Copy(fromPath, filepath.Join(tempDir, "out.txt"), 100, 0)
-		require.ErrorIs(t, err, ErrOffsetExceedsFileSize)
+				act, _ := os.ReadFile(to)
+				exp, _ := os.ReadFile(filepath.Join(testDir, tc.exp))
+				require.Equal(t, exp, act)
+			})
+		}
 	})
 
-	t.Run("limit bigger than file", func(t *testing.T) {
-		toPath := filepath.Join(tempDir, "out_limit.txt")
-		err := Copy(fromPath, toPath, 0, 500)
-		require.NoError(t, err)
+	t.Run("Validation", func(t *testing.T) {
+		from := filepath.Join(tempDir, "small.txt")
+		os.WriteFile(from, []byte("small file"), 0644)
 
-		res, _ := os.ReadFile(toPath)
-		require.Equal(t, []byte("small file"), res)
+		t.Run("offset too big", func(t *testing.T) {
+			err := Copy(from, filepath.Join(tempDir, "out.txt"), 100, 0)
+			require.ErrorIs(t, err, ErrOffsetExceedsFileSize)
+		})
+
+		t.Run("limit bigger than file", func(t *testing.T) {
+			to := filepath.Join(tempDir, "out_limit.txt")
+			require.NoError(t, Copy(from, to, 0, 500))
+			res, _ := os.ReadFile(to)
+			require.Equal(t, []byte("small file"), res)
+		})
 	})
 }

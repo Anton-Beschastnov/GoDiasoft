@@ -13,15 +13,15 @@ var (
 )
 
 func Copy(fromPath, toPath string, offset, limit int64) error {
-	source, err := os.Open(fromPath)
+	src, err := os.Open(fromPath)
 	if err != nil {
-		return fmt.Errorf("cannot open source file: %w", err)
+		return fmt.Errorf("open source: %w", err)
 	}
-	defer source.Close()
+	defer src.Close()
 
-	info, err := source.Stat()
+	info, err := src.Stat()
 	if err != nil {
-		return fmt.Errorf("cannot stat source file: %w", err)
+		return fmt.Errorf("stat source: %w", err)
 	}
 
 	if !info.Mode().IsRegular() {
@@ -32,26 +32,30 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		return ErrOffsetExceedsFileSize
 	}
 
-	if _, err := source.Seek(offset, io.SeekStart); err != nil {
-		return fmt.Errorf("cannot seek: %w", err)
+	return prepareAndCopy(src, toPath, offset, limit, info.Size())
+}
+
+func prepareAndCopy(src *os.File, toPath string, off, lim, size int64) error {
+	if _, err := src.Seek(off, io.SeekStart); err != nil {
+		return fmt.Errorf("seek: %w", err)
 	}
 
-	copySize := info.Size() - offset
-	if limit > 0 && limit < copySize {
-		copySize = limit
+	copySize := size - off
+	if lim > 0 && lim < copySize {
+		copySize = lim
 	}
 
-	if copySize <= 0 && limit > 0 {
+	if copySize <= 0 && lim > 0 {
 		return nil
 	}
 
-	dest, err := os.Create(toPath)
+	dst, err := os.Create(toPath)
 	if err != nil {
-		return fmt.Errorf("cannot create destination file: %w", err)
+		return fmt.Errorf("create destination: %w", err)
 	}
-	defer dest.Close()
+	defer dst.Close()
 
-	return copyWithProgress(source, dest, copySize)
+	return copyWithProgress(src, dst, copySize)
 }
 
 func copyWithProgress(src io.Reader, dst io.Writer, total int64) error {
@@ -64,35 +68,43 @@ func copyWithProgress(src io.Reader, dst io.Writer, total int64) error {
 	buf := make([]byte, 32*1024)
 
 	for {
-		n, readErr := src.Read(buf)
+		n, rErr := src.Read(buf)
 		if n > 0 {
-			toWrite := int64(n)
-			if current+toWrite > total {
-				toWrite = total - current
-			}
-
-			if _, err := dst.Write(buf[:toWrite]); err != nil {
+			if err := writeChunk(dst, buf[:n], &current, total); err != nil {
 				return err
 			}
-
-			current += toWrite
-			percent := float64(current) / float64(total) * 100
-			fmt.Printf("\rCopying: %.2f%%", percent)
-
 			if current >= total {
 				fmt.Println()
 				return nil
 			}
 		}
-
-		if readErr != nil {
-			if errors.Is(readErr, io.EOF) {
-				if current > 0 {
-					fmt.Println()
-				}
-				return nil
-			}
-			return readErr
+		if rErr != nil {
+			return handleReadError(rErr, current)
 		}
 	}
+}
+
+func writeChunk(dst io.Writer, b []byte, current *int64, total int64) error {
+	toWrite := int64(len(b))
+	if *current+toWrite > total {
+		toWrite = total - *current
+	}
+
+	if _, err := dst.Write(b[:toWrite]); err != nil {
+		return err
+	}
+
+	*current += toWrite
+	fmt.Printf("\rCopying: %.2f%%", float64(*current)/float64(total)*100)
+	return nil
+}
+
+func handleReadError(err error, current int64) error {
+	if errors.Is(err, io.EOF) {
+		if current > 0 {
+			fmt.Println()
+		}
+		return nil
+	}
+	return err
 }
