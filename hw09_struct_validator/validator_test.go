@@ -20,7 +20,6 @@ type (
 		Role   UserRole `validate:"in:admin,stuff"`
 		Phones []string `validate:"len:11"`
 		Meta   Meta     `validate:"nested"`
-		meta   string
 	}
 
 	Response struct {
