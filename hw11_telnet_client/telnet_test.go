@@ -13,18 +13,18 @@ import (
 
 func TestTelnetClient(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
-		l, err := net.Listen("tcp", "127.0.0.1:")
+		l, err := net.Listen("tcp", "127.0.0.1:0")
 		require.NoError(t, err)
 		defer func() { require.NoError(t, l.Close()) }()
 
 		var wg sync.WaitGroup
 		wg.Add(2)
 
+		in := bytes.NewBufferString("hello\n")
+		out := &bytes.Buffer{}
+
 		go func() {
 			defer wg.Done()
-
-			in := &bytes.Buffer{}
-			out := &bytes.Buffer{}
 
 			timeout, err := time.ParseDuration("10s")
 			require.NoError(t, err)
@@ -33,7 +33,6 @@ func TestTelnetClient(t *testing.T) {
 			require.NoError(t, client.Connect())
 			defer func() { require.NoError(t, client.Close()) }()
 
-			in.WriteString("hello\n")
 			err = client.Send()
 			require.NoError(t, err)
 

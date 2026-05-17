@@ -1,4 +1,4 @@
-module github.com/fixme_my_friend/hw11_telnet_client
+module github.com/Anton-Beschastnov/GoDiasoft
 
 go 1.19
 
