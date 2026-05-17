@@ -39,7 +39,7 @@ func TestCopy(t *testing.T) {
 	})
 	t.Run("Validation", func(t *testing.T) {
 		from := filepath.Join(tempDir, "small.txt")
-		os.WriteFile(from, []byte("small file"), 0644)
+		os.WriteFile(from, []byte("small file"), 0o644)
 		t.Run("offset_too_big", func(t *testing.T) {
 			err := Copy(from, filepath.Join(tempDir, "out.txt"), 100, 0)
 			require.ErrorIs(t, err, ErrOffsetExceedsFileSize)
