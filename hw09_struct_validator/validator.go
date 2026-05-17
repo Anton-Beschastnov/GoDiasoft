@@ -232,14 +232,14 @@ func validateMax(val reflect.Value, args string) error {
 
 func validateIn(val reflect.Value, args string) error {
 	allowed := strings.Split(args, ",")
-	switch val.Kind() {
-	case reflect.String:
+	kind := val.Kind()
+	if kind == reflect.String {
 		return validateInString(val.String(), allowed)
-	case reflect.Int:
-		return validateInInt(int(val.Int()), allowed)
-	default:
-		return ErrUnsupportedFieldType
 	}
+	if kind == reflect.Int {
+		return validateInInt(int(val.Int()), allowed)
+	}
+	return ErrUnsupportedFieldType
 }
 
 func validateInString(strVal string, allowed []string) error {
