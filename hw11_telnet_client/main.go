@@ -31,9 +31,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
 	client := NewTelnetClient(address, timeout, os.Stdin, os.Stdout)
 	if err := client.Connect(); err != nil {
 		fmt.Fprintf(os.Stderr, "Connection error: %v\n", err)
@@ -41,6 +38,9 @@ func main() {
 	}
 	fmt.Fprintf(os.Stderr, "...Connected to %s\n", address)
 	defer client.Close()
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	errChan := make(chan error, 2)
 
