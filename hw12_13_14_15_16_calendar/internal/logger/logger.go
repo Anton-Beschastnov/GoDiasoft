@@ -1,15 +1,25 @@
 package logger
 
 import (
+	"fmt"
 	"io"
-	"log/slog"
+	"log"
 	"os"
 	"strings"
 )
 
+type Level int
+
+const (
+	LevelDebug Level = iota
+	LevelInfo
+	LevelWarn
+	LevelError
+)
+
 type Logger struct {
-	logger *slog.Logger
-	level  slog.Level
+	logger *log.Logger
+	level  Level
 }
 
 func New(level string, output io.Writer) *Logger {
@@ -17,45 +27,69 @@ func New(level string, output io.Writer) *Logger {
 		output = os.Stdout
 	}
 
-	lvl := parseLevel(level)
-	opts := &slog.HandlerOptions{
-		Level: lvl,
-	}
-
-	handler := slog.NewTextHandler(output, opts)
 	return &Logger{
-		logger: slog.New(handler),
-		level:  lvl,
+		logger: log.New(output, "", log.LstdFlags),
+		level:  parseLevel(level),
 	}
 }
 
-func parseLevel(level string) slog.Level {
+func parseLevel(level string) Level {
 	switch strings.ToLower(level) {
 	case "debug":
-		return slog.LevelDebug
+		return LevelDebug
 	case "info":
-		return slog.LevelInfo
+		return LevelInfo
 	case "warn", "warning":
-		return slog.LevelWarn
+		return LevelWarn
 	case "error":
-		return slog.LevelError
+		return LevelError
 	default:
-		return slog.LevelInfo
+		return LevelInfo
 	}
 }
 
 func (l *Logger) Debug(msg string, args ...any) {
-	l.logger.Debug(msg, args...)
+	if l.level <= LevelDebug {
+		l.log("DEBUG", msg, args...)
+	}
 }
 
 func (l *Logger) Info(msg string, args ...any) {
-	l.logger.Info(msg, args...)
+	if l.level <= LevelInfo {
+		l.log("INFO", msg, args...)
+	}
 }
 
 func (l *Logger) Warn(msg string, args ...any) {
-	l.logger.Warn(msg, args...)
+	if l.level <= LevelWarn {
+		l.log("WARN", msg, args...)
+	}
 }
 
 func (l *Logger) Error(msg string, args ...any) {
-	l.logger.Error(msg, args...)
+	if l.level <= LevelError {
+		l.log("ERROR", msg, args...)
+	}
+}
+
+func (l *Logger) log(level, msg string, args ...any) {
+	if len(args) > 0 {
+		l.logger.Printf("[%s] %s %v", level, msg, formatArgs(args))
+	} else {
+		l.logger.Printf("[%s] %s", level, msg)
+	}
+}
+
+func formatArgs(args []any) string {
+	if len(args) == 0 {
+		return ""
+	}
+	var result string
+	for i := 0; i < len(args)-1; i += 2 {
+		if i > 0 {
+			result += " "
+		}
+		result += fmt.Sprintf("%v=%v", args[i], args[i+1])
+	}
+	return result
 }
