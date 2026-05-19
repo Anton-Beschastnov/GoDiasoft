@@ -30,7 +30,7 @@ install-lint-deps:
 
 lint: install-lint-deps
 	go mod tidy
-	golangci-lint run ./...
+	GOROOT=$(shell go env GOROOT) golangci-lint run ./...
 
 migrate:
 	goose -dir ./migrations postgres "postgres://calendar:calendar@localhost:5432/calendar?sslmode=disable" up
