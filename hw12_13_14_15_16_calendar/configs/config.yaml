@@ -1,0 +1,16 @@
+logger:
+  level: "info"
+
+http:
+  host: "127.0.0.1"
+  port: 8080
+
+storage:
+  type: "memory"  # "memory" или "sql"
+
+database:
+  host: "localhost"
+  port: 5432
+  user: "calendar"
+  password: "calendar"
+  database: "calendar"
