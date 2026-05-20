@@ -26,9 +26,7 @@ test:
 	go test -race ./internal/...
 
 install-lint-deps:
-	@if ! command -v golangci-lint > /dev/null 2>&1; then \
-		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.60.0; \
-	fi
+	which golangci-lint || (curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /usr/local/bin v1.60.0)
 
 lint: install-lint-deps
 	go mod tidy
