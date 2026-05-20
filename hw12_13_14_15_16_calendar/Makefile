@@ -25,13 +25,10 @@ version: build
 test:
 	go test -race ./internal/...
 
-install-lint-deps:
-	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.60.0
-
-lint-deps: install-lint-deps
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.60.0
-
-lint: lint-deps
+lint:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1
+	go mod tidy
+	golangci-lint run ./...
 	go mod tidy
 	golangci-lint run ./...
 
