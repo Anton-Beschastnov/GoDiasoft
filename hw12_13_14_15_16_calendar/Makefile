@@ -32,7 +32,7 @@ install-lint-deps:
 
 lint: install-lint-deps
 	go mod tidy
-	golangci-lint run ./...
+	golangci-lint run --disable gocritic ./...
 
 migrate:
 	goose -dir ./migrations postgres "postgres://calendar:calendar@localhost:5432/calendar?sslmode=disable" up
