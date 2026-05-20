@@ -28,7 +28,6 @@ test:
 lint:
 	go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8 run ./...
 	go mod tidy
-	golangci-lint run ./...
 
 migrate:
 	goose -dir ./migrations postgres "postgres://calendar:calendar@localhost:5432/calendar?sslmode=disable" up
