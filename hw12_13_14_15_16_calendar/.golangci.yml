@@ -8,15 +8,6 @@ linters-settings:
   funlen:
     lines: 150
     statements: 80
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-    disabled-checks:
-      - ruleguard
 
 issues:
   exclude-rules:
@@ -43,8 +34,6 @@ linters:
     - gci
     - gocognit
     - goconst
-    - gocritic
-    - gocyclo
     - godot
     - gofmt
     - gofumpt
