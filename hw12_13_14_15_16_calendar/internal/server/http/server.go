@@ -6,14 +6,17 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/api"
+	"github.com/go-chi/chi/v5"
 )
 
 type Server struct {
-	server *http.Server
-	logger Logger
-	app    Application
-	host   string
-	port   int
+	server  *http.Server
+	handler api.ServerInterface
+	logger  Logger
+	host    string
+	port    int
 }
 
 type Logger interface {
@@ -23,23 +26,27 @@ type Logger interface {
 	Error(msg string, args ...any)
 }
 
-type Application interface{}
-
-func NewServer(logger Logger, app Application, host string, port int) *Server {
+func NewServer(logger Logger, handler api.ServerInterface, host string, port int) *Server {
 	return &Server{
-		logger: logger,
-		app:    app,
-		host:   host,
-		port:   port,
+		handler: handler,
+		logger:  logger,
+		host:    host,
+		port:    port,
 	}
 }
 
-func (s *Server) Start(_ context.Context) error {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", s.helloHandler)
-	mux.HandleFunc("/hello", s.helloHandler)
+func (s *Server) Start(ctx context.Context) error {
+	r := chi.NewRouter()
 
-	handler := s.loggingMiddleware(mux)
+	apiHandler := api.HandlerWithOptions(s.handler, api.ChiServerOptions{
+		BaseRouter: r,
+		ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
+			s.logger.Error("API error", "error", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		},
+	})
+
+	handler := s.loggingMiddleware(apiHandler)
 
 	addr := net.JoinHostPort(s.host, fmt.Sprintf("%d", s.port))
 	s.server = &http.Server{
@@ -62,10 +69,4 @@ func (s *Server) Stop(ctx context.Context) error {
 		return s.server.Shutdown(ctx)
 	}
 	return nil
-}
-
-func (s *Server) helloHandler(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte("Hello, Calendar!"))
 }
