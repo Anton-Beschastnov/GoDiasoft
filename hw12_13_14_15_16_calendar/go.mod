@@ -1,7 +1,6 @@
 module github.com/Anton-Beschastnov/GoDiasoft
 
-go 1.19
-toolchain local
+go 1.23
 
 require (
 	github.com/jackc/pgx/v5 v5.5.1
