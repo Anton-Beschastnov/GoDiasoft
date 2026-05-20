@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
-
 	"github.com/Anton-Beschastnov/GoDiasoft/internal/storage"
+	_ "github.com/jackc/pgx/v5/stdlib" // blank import to register pgx driver
 )
 
 type Storage struct {

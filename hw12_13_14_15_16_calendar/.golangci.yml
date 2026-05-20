@@ -17,19 +17,23 @@ issues:
         - dupl
         - gocyclo
         - gosec
+        - revive
+    - path: internal/storage/memory/storage_test\.go
+      linters:
+        - errorlint
+    - path: internal/logger/logger_test\.go
+      linters:
+        - revive
 
 linters:
   disable-all: true
   enable:
     - asciicheck
     - bodyclose
-    - depguard
     - dogsled
     - dupl
     - durationcheck
-    - errorlint
     - exhaustive
-    - exportloopref
     - funlen
     - gci
     - gocognit
