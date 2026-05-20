@@ -26,7 +26,7 @@ test:
 	go test -race ./internal/...
 
 lint:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.58.2
 	go mod tidy
 	golangci-lint run ./...
 	go mod tidy
