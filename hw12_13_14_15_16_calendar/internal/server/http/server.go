@@ -35,12 +35,12 @@ func NewServer(logger Logger, handler api.ServerInterface, host string, port int
 	}
 }
 
-func (s *Server) Start(ctx context.Context) error {
+func (s *Server) Start(_ context.Context) error {
 	r := chi.NewRouter()
 
 	apiHandler := api.HandlerWithOptions(s.handler, api.ChiServerOptions{
 		BaseRouter: r,
-		ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
+		ErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
 			s.logger.Error("API error", "error", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		},

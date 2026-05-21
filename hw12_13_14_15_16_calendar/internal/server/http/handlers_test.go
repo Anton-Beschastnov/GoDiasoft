@@ -17,13 +17,13 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
-// helperUUID создает UUID из строки для тестов
+// helperUUID creates UUID from string for tests.
 func helperUUID(s string) openapi_types.UUID {
 	u, err := uuid.Parse(s)
 	if err != nil {
 		panic(err)
 	}
-	return openapi_types.UUID(u)
+	return openapi_types.UUID(u) //nolint:unconvert
 }
 
 func newTestLogger() Logger {
