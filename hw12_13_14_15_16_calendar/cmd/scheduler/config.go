@@ -2,18 +2,18 @@ package main
 
 import (
 	"os"
-	"time"
 
+	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/scheduler"
 	"gopkg.in/yaml.v3"
 )
 
 // Config общая конфигурация приложения
 type Config struct {
-	Logger    LoggerConfig    `yaml:"logger"`
-	Storage   StorageConfig   `yaml:"storage"`
-	DB        DBConfig        `yaml:"database"`
-	Kafka     KafkaConfig     `yaml:"kafka"`
-	Scheduler SchedulerConfig `yaml:"scheduler"`
+	Logger    LoggerConfig     `yaml:"logger"`
+	Storage   StorageConfig    `yaml:"storage"`
+	DB        DBConfig         `yaml:"database"`
+	Kafka     KafkaConfig      `yaml:"kafka"`
+	Scheduler scheduler.Config `yaml:"scheduler"`
 }
 
 // LoggerConfig конфигурация логгера
@@ -39,11 +39,6 @@ type DBConfig struct {
 type KafkaConfig struct {
 	BootstrapServers []string `yaml:"bootstrap_servers"`
 	Topic            string   `yaml:"topic"`
-}
-
-// SchedulerConfig конфигурация scheduler
-type SchedulerConfig struct {
-	ScanInterval time.Duration `yaml:"scan_interval"`
 }
 
 // NewConfig загружает конфигурацию из файла

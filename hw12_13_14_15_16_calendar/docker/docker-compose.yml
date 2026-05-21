@@ -31,7 +31,7 @@ services:
       - app
 
   postgres:
-    container_name: postgresbuild
+    container_name: postgrescalendar
     image: postgres:16-alpine
     restart: "no"
     environment:
@@ -40,7 +40,7 @@ services:
       POSTGRES_PASSWORD: "calendar"
       PGDATA: "/var/lib/postgresql/data/pgdata"
     volumes:
-      - pg_data_new:/var/lib/postgresql/data
+      - pg_data_calendar:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     networks:
@@ -52,4 +52,4 @@ networks:
     driver: bridge
 
 volumes:
-  pg_data_new:
+  pg_data_calendar:

@@ -12,17 +12,11 @@ import (
 // Config конфигурация scheduler
 type Config struct {
 	ScanInterval time.Duration `yaml:"scan_interval"`
-	Kafka        KafkaConfig   `yaml:"kafka"`
-}
-
-// KafkaConfig конфигурация Kafka
-type KafkaConfig struct {
-	Topic string `yaml:"topic"`
 }
 
 // Scheduler процесс для отправки уведомлений
 type Scheduler struct {
-	logger     logger.Logger
+	logger     logger.LoggerI
 	storage    app.Storage
 	producer   kafka.ProducerInterface
 	config     Config
@@ -30,7 +24,7 @@ type Scheduler struct {
 }
 
 // New создает новый scheduler
-func New(logger logger.Logger, storage app.Storage, producer kafka.ProducerInterface, config Config) *Scheduler {
+func New(logger logger.LoggerI, storage app.Storage, producer kafka.ProducerInterface, config Config) *Scheduler {
 	return &Scheduler{
 		logger:     logger,
 		storage:    storage,
@@ -77,7 +71,7 @@ func (s *Scheduler) runOnce(ctx context.Context) error {
 			UserID:    event.UserID,
 		}
 
-		if err := s.producer.Send(ctx, s.config.Kafka.Topic, notification); err != nil {
+		if err := s.producer.Send(ctx, "notifications", notification); err != nil {
 			s.logger.Error("failed to send notification", "event_id", event.ID, "error", err)
 		} else {
 			s.logger.Info("sent notification", "event_id", event.ID, "user_id", event.UserID)

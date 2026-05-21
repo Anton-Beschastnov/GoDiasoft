@@ -17,6 +17,14 @@ const (
 	LevelError
 )
 
+// LoggerI интерфейс для логгера
+type LoggerI interface {
+	Debug(msg string, args ...any)
+	Info(msg string, args ...any)
+	Warn(msg string, args ...any)
+	Error(msg string, args ...any)
+}
+
 type Logger struct {
 	logger *log.Logger
 	level  Level

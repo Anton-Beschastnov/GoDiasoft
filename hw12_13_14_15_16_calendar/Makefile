@@ -61,8 +61,4 @@ migrate-reset:
 clean:
 	rm -rf ./bin
 
-start:
-	@echo Starting calendar system...
-	@powershell -ExecutionPolicy Bypass -File .\scripts\start.bat
-
 .PHONY: build build-calendar build-scheduler build-storer run run-scheduler run-storer build-img run-img version test lint migrate migrate-down clean start
