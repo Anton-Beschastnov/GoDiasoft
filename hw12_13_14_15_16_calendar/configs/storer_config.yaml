@@ -1,0 +1,17 @@
+logger:
+  level: "info"
+
+database:
+  host: "localhost"
+  port: 5432
+  user: "calendar"
+  password: "calendar"
+  database: "calendar"
+
+kafka:
+  bootstrap_servers:
+    - "localhost:9092"
+  topic: "calendar_notifications"
+
+storer:
+  # Дополнительные настройки при необходимости
