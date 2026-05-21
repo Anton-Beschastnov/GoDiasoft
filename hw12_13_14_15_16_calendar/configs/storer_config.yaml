@@ -14,4 +14,4 @@ kafka:
   topic: "calendar_notifications"
 
 storer:
-  # Дополнительные настройки при необходимости
+  kafka_topic: "calendar_notifications"

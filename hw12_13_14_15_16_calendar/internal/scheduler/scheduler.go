@@ -12,6 +12,7 @@ import (
 // Config конфигурация scheduler
 type Config struct {
 	ScanInterval time.Duration `yaml:"scan_interval"`
+	KafkaTopic   string        `yaml:"kafka_topic"`
 }
 
 // Scheduler процесс для отправки уведомлений
@@ -36,6 +37,8 @@ func New(logger logger.LoggerI, storage app.Storage, producer kafka.ProducerInte
 
 // Run запускает scheduler
 func (s *Scheduler) Run(ctx context.Context) error {
+	s.logger.Info("scheduler is running", "scan_interval", s.config.ScanInterval, "kafka_topic", s.config.KafkaTopic)
+
 	ticker := time.NewTicker(s.config.ScanInterval)
 	defer ticker.Stop()
 
@@ -71,8 +74,13 @@ func (s *Scheduler) runOnce(ctx context.Context) error {
 			UserID:    event.UserID,
 		}
 
-		if err := s.producer.Send(ctx, "notifications", notification); err != nil {
-			s.logger.Error("failed to send notification", "event_id", event.ID, "error", err)
+		topic := s.config.KafkaTopic
+		if topic == "" {
+			topic = "calendar_notifications" // default topic
+		}
+
+		if err := s.producer.Send(ctx, topic, notification); err != nil {
+			s.logger.Error("failed to send notification", "event_id", event.ID, "user_id", event.UserID, "error", err)
 		} else {
 			s.logger.Info("sent notification", "event_id", event.ID, "user_id", event.UserID)
 		}

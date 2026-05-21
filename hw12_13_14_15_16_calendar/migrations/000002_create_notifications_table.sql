@@ -1,3 +1,4 @@
+-- +goose Up
 -- Create notifications table
 CREATE TABLE IF NOT EXISTS notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -13,3 +14,9 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_event_id ON notifications(event_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
+
+-- +goose Down
+DROP TABLE IF EXISTS notifications;
+DROP INDEX IF EXISTS idx_notifications_user_id;
+DROP INDEX IF EXISTS idx_notifications_event_id;
+DROP INDEX IF EXISTS idx_notifications_created_at;

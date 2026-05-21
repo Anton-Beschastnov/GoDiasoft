@@ -13,36 +13,19 @@ import (
 
 // Config конфигурация storer
 type Config struct {
-	StorageType string      `yaml:"storage_type"`
-	DB          DBConfig    `yaml:"database"`
-	Kafka       KafkaConfig `yaml:"kafka"`
-}
-
-// DBConfig конфигурация базы данных
-type DBConfig struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-	Database string `yaml:"database"`
-}
-
-// KafkaConfig конфигурация Kafka
-type KafkaConfig struct {
-	BootstrapServers []string `yaml:"bootstrap_servers"`
-	Topic            string   `yaml:"topic"`
+	KafkaTopic string `yaml:"kafka_topic"`
 }
 
 // Storer процесс для сохранения уведомлений
 type Storer struct {
-	logger   logger.Logger
+	logger   logger.LoggerI
 	storage  app.Storage
 	consumer kafka.ConsumerInterface
 	config   Config
 }
 
 // New создает новый storer
-func New(logger logger.Logger, storage app.Storage, consumer kafka.ConsumerInterface, config Config) *Storer {
+func New(logger logger.LoggerI, storage app.Storage, consumer kafka.ConsumerInterface, config Config) *Storer {
 	return &Storer{
 		logger:   logger,
 		storage:  storage,
@@ -53,14 +36,18 @@ func New(logger logger.Logger, storage app.Storage, consumer kafka.ConsumerInter
 
 // Run запускает storer
 func (s *Storer) Run(ctx context.Context) error {
-	s.logger.Info("storer is running...")
+	topic := s.config.KafkaTopic
+	if topic == "" {
+		topic = "calendar_notifications" // default topic
+	}
+	s.logger.Info("storer is running", "kafka_topic", topic)
 
 	// Обработчик уведомлений
 	handler := func(notification *kafka.Notification) error {
 		return s.saveNotification(ctx, notification)
 	}
 
-	return s.consumer.Consume(ctx, s.config.Kafka.Topic, handler)
+	return s.consumer.Consume(ctx, topic, handler)
 }
 
 // saveNotification сохраняет уведомление в базу данных

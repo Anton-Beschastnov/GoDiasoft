@@ -1,3 +1,4 @@
+-- +goose Up
 -- Create events table
 CREATE TABLE IF NOT EXISTS events (
     id VARCHAR(255) PRIMARY KEY,
@@ -13,3 +14,9 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE INDEX IF NOT EXISTS idx_events_user_id ON events(user_id);
 CREATE INDEX IF NOT EXISTS idx_events_start_time ON events(start_time);
 CREATE INDEX IF NOT EXISTS idx_events_end_time ON events(end_time);
+
+-- +goose Down
+DROP TABLE IF EXISTS events;
+DROP INDEX IF EXISTS idx_events_user_id;
+DROP INDEX IF EXISTS idx_events_start_time;
+DROP INDEX IF EXISTS idx_events_end_time;

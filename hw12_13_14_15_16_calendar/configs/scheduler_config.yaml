@@ -18,3 +18,4 @@ kafka:
 
 scheduler:
   scan_interval: "1m"
+  kafka_topic: "calendar_notifications"

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"flag"
 	"fmt"
 	"os"
@@ -14,6 +15,8 @@ import (
 	internalhttp "github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/server/http"
 	memorystorage "github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/storage/memory"
 	sqlstorage "github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/storage/sql"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 )
 
 var configFile string
@@ -57,6 +60,13 @@ func main() {
 		}
 		cancel()
 		storage = sqlStore
+
+		// Apply migrations
+		if err := runMigrations(dsn); err != nil {
+			logg.Error("failed to run migrations", "error", err)
+			os.Exit(1)
+		}
+
 		defer func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
@@ -93,4 +103,27 @@ func main() {
 		cancel()
 		os.Exit(1) //nolint:gocritic
 	}
+}
+
+func runMigrations(dsn string) error {
+	db, err := sql.Open("pgx", dsn)
+	if err != nil {
+		return fmt.Errorf("failed to open database: %w", err)
+	}
+	defer db.Close()
+
+	if err := db.Ping(); err != nil {
+		return fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	if err := goose.SetDialect("postgres"); err != nil {
+		return fmt.Errorf("failed to set dialect: %w", err)
+	}
+
+	migrationsDir := "./migrations"
+	if err := goose.Run("up", db, migrationsDir); err != nil {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	return nil
 }

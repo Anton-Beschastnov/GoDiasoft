@@ -97,7 +97,9 @@ func main() {
 	}()
 
 	// Запуск storer
-	storer := storer.New(logg, storage, consumer, config.Storer)
+	storer := storer.New(logg, storage, consumer, storer.Config{
+		KafkaTopic: config.Storer.KafkaTopic,
+	})
 
 	ctx, cancel = signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)

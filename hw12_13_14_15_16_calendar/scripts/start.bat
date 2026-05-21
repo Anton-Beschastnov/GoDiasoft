@@ -9,7 +9,12 @@ echo.
 
 cd /d "%~dp0.."
 
-echo [1/3] Сборка проектов...
+echo [1/5] Сборка проекта...
+go build -o bin\migrate.exe ./cmd/migrate
+if errorlevel 1 (
+    echo Ошибка при сборке migrate
+    exit /b 1
+)
 go build -o bin\calendar.exe -ldflags "-X main.release=develop" ./cmd/calendar
 if errorlevel 1 (
     echo Ошибка при сборке calendar
@@ -27,7 +32,15 @@ if errorlevel 1 (
 )
 echo.
 
-echo [2/3] Запуск сервисов...
+echo [2/5] Применение миграций базы данных...
+bin\migrate.exe -dburl "postgres://calendar:calendar@localhost:5432/calendar?sslmode=disable"
+if errorlevel 1 (
+    echo Ошибка при применении миграций
+    exit /b 1
+)
+echo.
+
+echo [3/5] Запуск сервисов...
 start "Calendar API" cmd /c "cd /d %~dp0.. && .\bin\calendar.exe --config=.\configs\config.yaml & pause"
 timeout /t 2 /nobreak >nul
 

@@ -36,7 +36,7 @@ type KafkaConfig struct {
 
 // StorerConfig конфигурация storer
 type StorerConfig struct {
-	// Дополнительные настройки при необходимости
+	KafkaTopic string `yaml:"kafka_topic"`
 }
 
 // NewConfig загружает конфигурацию из файла
