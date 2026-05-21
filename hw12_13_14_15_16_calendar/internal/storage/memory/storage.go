@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Anton-Beschastnov/GoDiasoft/internal/storage"
+	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/storage"
 )
 
 type Storage struct {

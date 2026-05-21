@@ -9,11 +9,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Anton-Beschastnov/GoDiasoft/internal/app"
-	"github.com/Anton-Beschastnov/GoDiasoft/internal/logger"
-	internalhttp "github.com/Anton-Beschastnov/GoDiasoft/internal/server/http"
-	memorystorage "github.com/Anton-Beschastnov/GoDiasoft/internal/storage/memory"
-	sqlstorage "github.com/Anton-Beschastnov/GoDiasoft/internal/storage/sql"
+	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/app"
+	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/logger"
+	internalhttp "github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/server/http"
+	memorystorage "github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/storage/memory"
+	sqlstorage "github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/storage/sql"
 )
 
 var configFile string
@@ -68,8 +68,8 @@ func main() {
 		storage = memorystorage.New()
 	}
 
-	calendar := app.New(logg, storage)
-	server := internalhttp.NewServer(logg, calendar, config.HTTP.Host, config.HTTP.Port)
+	handler := internalhttp.NewCalendarHandler(logg, storage)
+	server := internalhttp.NewServer(logg, handler, config.HTTP.Host, config.HTTP.Port)
 
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
