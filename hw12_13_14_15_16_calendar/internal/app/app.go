@@ -27,6 +27,10 @@ type Storage interface {
 	ListEventsForDay(ctx context.Context, userID string, date time.Time) ([]storage.Event, error)
 	ListEventsForWeek(ctx context.Context, userID string, startDate time.Time) ([]storage.Event, error)
 	ListEventsForMonth(ctx context.Context, userID string, startDate time.Time) ([]storage.Event, error)
+	GetEventsForNotification(ctx context.Context, now time.Time) ([]storage.Event, error)
+	DeleteOldEvents(ctx context.Context, cutoff time.Time) error
+	SaveNotification(ctx context.Context, notification *storage.Notification) error
+	GetNotificationByID(ctx context.Context, id string) (*storage.Notification, error)
 }
 
 func New(logger Logger, storage Storage) *App {
@@ -65,4 +69,20 @@ func (a *App) ListEventsForWeek(ctx context.Context, userID string, startDate ti
 
 func (a *App) ListEventsForMonth(ctx context.Context, userID string, startDate time.Time) ([]storage.Event, error) {
 	return a.storage.ListEventsForMonth(ctx, userID, startDate)
+}
+
+func (a *App) GetEventsForNotification(ctx context.Context, now time.Time) ([]storage.Event, error) {
+	return a.storage.GetEventsForNotification(ctx, now)
+}
+
+func (a *App) DeleteOldEvents(ctx context.Context, cutoff time.Time) error {
+	return a.storage.DeleteOldEvents(ctx, cutoff)
+}
+
+func (a *App) SaveNotification(ctx context.Context, notification *storage.Notification) error {
+	return a.storage.SaveNotification(ctx, notification)
+}
+
+func (a *App) GetNotificationByID(ctx context.Context, id string) (*storage.Notification, error) {
+	return a.storage.GetNotificationByID(ctx, id)
 }

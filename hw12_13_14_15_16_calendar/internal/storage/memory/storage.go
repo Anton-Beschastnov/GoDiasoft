@@ -9,13 +9,15 @@ import (
 )
 
 type Storage struct {
-	mu     sync.RWMutex
-	events map[string]storage.Event
+	mu            sync.RWMutex
+	events        map[string]storage.Event
+	notifications *notifications
 }
 
 func New() *Storage {
 	return &Storage{
-		events: make(map[string]storage.Event),
+		events:        make(map[string]storage.Event),
+		notifications: newNotifications(),
 	}
 }
 
@@ -109,6 +111,77 @@ func (s *Storage) ListEventsForMonth(_ context.Context, userID string, startDate
 	endOfMonth := startOfMonth.AddDate(0, 1, 0)
 
 	return s.filterEvents(userID, startOfMonth, endOfMonth), nil
+}
+
+// GetEventsForNotification возвращает события, для которых нужно отправить уведомление
+func (s *Storage) GetEventsForNotification(_ context.Context, now time.Time) ([]storage.Event, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var result []storage.Event
+	for _, event := range s.events {
+		if event.NotifyBefore > 0 &&
+			!event.StartTime.Add(-event.NotifyBefore).Before(now) &&
+			event.StartTime.After(now) {
+			result = append(result, event)
+		}
+	}
+	return result, nil
+}
+
+// DeleteOldEvents удаляет события старше 1 года
+func (s *Storage) DeleteOldEvents(_ context.Context, cutoff time.Time) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for id, event := range s.events {
+		if event.StartTime.Before(cutoff) {
+			delete(s.events, id)
+		}
+	}
+	return nil
+}
+
+// notifications хранит уведомления
+type notifications struct {
+	mu            sync.RWMutex
+	notifications map[string]*storage.Notification
+}
+
+func newNotifications() *notifications {
+	return &notifications{
+		notifications: make(map[string]*storage.Notification),
+	}
+}
+
+func (n *notifications) Save(_ context.Context, notification *storage.Notification) error {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	n.notifications[notification.ID] = notification
+	return nil
+}
+
+func (n *notifications) Get(_ context.Context, id string) (*storage.Notification, error) {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
+	notification, exists := n.notifications[id]
+	if !exists {
+		return nil, storage.ErrNotificationNotFound
+	}
+
+	return notification, nil
+}
+
+// SaveNotification сохраняет уведомление
+func (s *Storage) SaveNotification(ctx context.Context, notification *storage.Notification) error {
+	return s.notifications.Save(ctx, notification)
+}
+
+// GetNotificationByID возвращает уведомление по ID
+func (s *Storage) GetNotificationByID(ctx context.Context, id string) (*storage.Notification, error) {
+	return s.notifications.Get(ctx, id)
 }
 
 func (s *Storage) filterEvents(userID string, start, end time.Time) []storage.Event {

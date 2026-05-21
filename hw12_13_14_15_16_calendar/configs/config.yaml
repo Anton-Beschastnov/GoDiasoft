@@ -14,3 +14,8 @@ database:
   user: "calendar"
   password: "calendar"
   database: "calendar"
+
+kafka:
+  bootstrap_servers:
+    - "localhost:9092"
+  topic: "calendar_notifications"
