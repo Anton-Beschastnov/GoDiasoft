@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/api"
+	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/logger"
 	"github.com/go-chi/chi/v5"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
@@ -17,7 +18,7 @@ import (
 type Server struct {
 	server  *http.Server
 	handler api.ServerInterface
-	logger  Logger
+	logger  logger.Iface
 	host    string
 	port    int
 }
@@ -29,7 +30,7 @@ type Logger interface {
 	Error(msg string, args ...any)
 }
 
-func NewServer(logger Logger, handler api.ServerInterface, host string, port int) *Server {
+func NewServer(logger logger.Iface, handler api.ServerInterface, host string, port int) *Server {
 	return &Server{
 		handler: handler,
 		logger:  logger,
@@ -41,12 +42,12 @@ func NewServer(logger Logger, handler api.ServerInterface, host string, port int
 func (s *Server) Start(_ context.Context) error {
 	r := chi.NewRouter()
 
-	// Определяем путь к swagger директории относительно исполняемого файла
-	exePath, err := os.Executable()
+	// Определяем путь к swagger директории относительно текущей рабочей директории
+	cwd, err := os.Getwd()
 	if err != nil {
-		s.logger.Error("failed to get executable path", "error", err)
+		s.logger.Error("failed to get current working directory", "error", err)
 	}
-	swaggerDir := filepath.Join(filepath.Dir(exePath), "swagger")
+	swaggerDir := filepath.Join(cwd, "swagger")
 
 	// Обслуживаем swagger/doc.json как отдельный файл
 	r.Handle("/swagger/doc.json", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

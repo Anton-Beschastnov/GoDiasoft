@@ -122,12 +122,12 @@ func runMigrations(dsn string) error {
 		return fmt.Errorf("failed to set dialect: %w", err)
 	}
 
-	// Путь к миграциям - определяем относительно исполняемого файла
-	exePath, err := os.Executable()
+	// Путь к миграциям - определяем относительно текущей рабочей директории
+	cwd, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("failed to get executable path: %w", err)
+		return fmt.Errorf("failed to get current working directory: %w", err)
 	}
-	migrationsDir := filepath.Join(filepath.Dir(exePath), "migrations")
+	migrationsDir := filepath.Join(cwd, "migrations")
 
 	// Проверяем существование директории
 	if _, err := os.Stat(migrationsDir); os.IsNotExist(err) {

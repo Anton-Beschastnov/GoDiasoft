@@ -281,7 +281,7 @@ func (s *Storage) DeleteOldEvents(ctx context.Context, cutoff time.Time) error {
 	return nil
 }
 
-// SaveNotification сохраняет уведомление в базу данных
+// SaveNotification сохраняет уведомление в базу данных.
 func (s *Storage) SaveNotification(ctx context.Context, notification *storage.Notification) error {
 	query := `
 		INSERT INTO notifications (id, event_id, title, start_time, user_id, created_at)
@@ -303,7 +303,7 @@ func (s *Storage) SaveNotification(ctx context.Context, notification *storage.No
 	return nil
 }
 
-// GetNotificationByID возвращает уведомление по ID
+// GetNotificationByID возвращает уведомление по ID.
 func (s *Storage) GetNotificationByID(ctx context.Context, id string) (*storage.Notification, error) {
 	query := `
 		SELECT id, event_id, title, start_time, user_id, created_at
