@@ -35,9 +35,9 @@ type DBConfig struct {
 	Database string `yaml:"database"`
 }
 
-// KafkaConfig конфигурация Kafka
+// KafkaConfig конфигурация Kafka.
 type KafkaConfig struct {
-	BootstrapServers []string `yaml:"bootstrap_servers"`
+	BootstrapServers []string `yaml:"bootstrapServers"`
 	Topic            string   `yaml:"topic"`
 }
 

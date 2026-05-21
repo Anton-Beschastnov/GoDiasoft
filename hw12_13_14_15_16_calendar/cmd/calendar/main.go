@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -51,6 +52,13 @@ func main() {
 			config.DB.Port,
 			config.DB.Database,
 		)
+
+		// Apply migrations
+		if err := runMigrations(dsn); err != nil {
+			logg.Error("failed to run migrations", "error", err)
+			os.Exit(1)
+		}
+
 		sqlStore := sqlstorage.New(dsn)
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		if err := sqlStore.Connect(ctx); err != nil {
@@ -60,12 +68,6 @@ func main() {
 		}
 		cancel()
 		storage = sqlStore
-
-		// Apply migrations
-		if err := runMigrations(dsn); err != nil {
-			logg.Error("failed to run migrations", "error", err)
-			os.Exit(1)
-		}
 
 		defer func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -120,8 +122,20 @@ func runMigrations(dsn string) error {
 		return fmt.Errorf("failed to set dialect: %w", err)
 	}
 
-	migrationsDir := "./migrations"
-	if err := goose.Run("up", db, migrationsDir); err != nil {
+	// Путь к миграциям - определяем относительно исполняемого файла
+	exePath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("failed to get executable path: %w", err)
+	}
+	migrationsDir := filepath.Join(filepath.Dir(exePath), "migrations")
+
+	// Проверяем существование директории
+	if _, err := os.Stat(migrationsDir); os.IsNotExist(err) {
+		return fmt.Errorf("migrations directory does not exist: %s", migrationsDir)
+	}
+
+	ctx := context.Background()
+	if err := goose.RunContext(ctx, "up", db, migrationsDir); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 

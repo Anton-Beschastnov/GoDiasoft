@@ -5,12 +5,12 @@ import (
 	"time"
 )
 
-// Notification представляет уведомление о событии
+// Notification представляет уведомление о событии.
 type Notification struct {
-	EventID   string    `json:"event_id"`
+	EventID   string    `json:"eventId"`
 	Title     string    `json:"title"`
-	StartTime time.Time `json:"start_time"`
-	UserID    string    `json:"user_id"`
+	StartTime time.Time `json:"startTime"`
+	UserID    string    `json:"userId"`
 }
 
 // ProducerInterface интерфейс для отправки сообщений в Kafka
@@ -29,8 +29,8 @@ type ConsumerInterface interface {
 	Close() error
 }
 
-// Config конфигурация подключения к Kafka
+// Config конфигурация подключения к Kafka.
 type Config struct {
-	BootstrapServers []string `yaml:"bootstrap_servers"`
+	BootstrapServers []string `yaml:"bootstrapServers"`
 	Topic            string   `yaml:"topic"`
 }

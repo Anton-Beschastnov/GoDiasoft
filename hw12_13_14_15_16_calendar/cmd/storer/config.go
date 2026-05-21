@@ -28,15 +28,15 @@ type DBConfig struct {
 	Database string `yaml:"database"`
 }
 
-// KafkaConfig конфигурация Kafka
+// KafkaConfig конфигурация Kafka.
 type KafkaConfig struct {
-	BootstrapServers []string `yaml:"bootstrap_servers"`
+	BootstrapServers []string `yaml:"bootstrapServers"`
 	Topic            string   `yaml:"topic"`
 }
 
-// StorerConfig конфигурация storer
+// StorerConfig конфигурация storer.
 type StorerConfig struct {
-	KafkaTopic string `yaml:"kafka_topic"`
+	KafkaTopic string `yaml:"kafkaTopic"`
 }
 
 // NewConfig загружает конфигурацию из файла

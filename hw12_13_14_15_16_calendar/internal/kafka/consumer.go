@@ -34,7 +34,7 @@ func NewConsumer(cfg Config) (*Consumer, error) {
 }
 
 // Consume читает сообщения из топика и вызывает handler для каждого уведомления
-func (c *Consumer) Consume(ctx context.Context, topic string, handler func(*Notification) error) error {
+func (c *Consumer) Consume(ctx context.Context, _ string, handler func(*Notification) error) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -43,7 +43,7 @@ func (c *Consumer) Consume(ctx context.Context, topic string, handler func(*Noti
 			msg, err := c.reader.ReadMessage(ctx)
 			if err != nil {
 				if ctx.Err() != nil {
-					return nil
+					return ctx.Err()
 				}
 				continue
 			}

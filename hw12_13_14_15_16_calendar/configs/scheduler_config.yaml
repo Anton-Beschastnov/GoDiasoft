@@ -12,10 +12,10 @@ database:
   database: "calendar"
 
 kafka:
-  bootstrap_servers:
+  bootstrapServers:
     - "localhost:9092"
   topic: "calendar_notifications"
 
 scheduler:
-  scan_interval: "1m"
-  kafka_topic: "calendar_notifications"
+  scanInterval: "1m"
+  kafkaTopic: "calendar_notifications"

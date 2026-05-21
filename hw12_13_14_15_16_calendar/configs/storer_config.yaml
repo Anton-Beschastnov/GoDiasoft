@@ -9,9 +9,9 @@ database:
   database: "calendar"
 
 kafka:
-  bootstrap_servers:
+  bootstrapServers:
     - "localhost:9092"
   topic: "calendar_notifications"
 
 storer:
-  kafka_topic: "calendar_notifications"
+  kafkaTopic: "calendar_notifications"

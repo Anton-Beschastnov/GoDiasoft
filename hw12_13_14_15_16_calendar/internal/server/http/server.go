@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/api"
@@ -39,14 +41,26 @@ func NewServer(logger Logger, handler api.ServerInterface, host string, port int
 func (s *Server) Start(_ context.Context) error {
 	r := chi.NewRouter()
 
+	// Определяем путь к swagger директории относительно исполняемого файла
+	exePath, err := os.Executable()
+	if err != nil {
+		s.logger.Error("failed to get executable path", "error", err)
+	}
+	swaggerDir := filepath.Join(filepath.Dir(exePath), "swagger")
+
+	// Обслуживаем swagger/doc.json как отдельный файл
+	r.Handle("/swagger/doc.json", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, filepath.Join(swaggerDir, "doc.json"))
+	}))
+
 	// Swagger UI - используем файлы для обслуживания swagger.json
-	r.Handle("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL("/swagger/doc.json"),
-		httpSwagger.URL("http://localhost:8080/swagger/doc.json"),
+	swaggerURL := fmt.Sprintf("http://%s:%d/swagger/doc.json", s.host, s.port)
+	r.Handle("/swagger/", httpSwagger.Handler(
+		httpSwagger.URL(swaggerURL),
 	))
 
-	// Обслуживаем swagger/doc.json как статический файл
-	r.Handle("/swagger/doc.json", http.StripPrefix("/swagger/", http.FileServer(http.Dir("./swagger"))))
+	// Обслуживаем остальные файлы из swagger директории
+	r.Handle("/swagger/{*filepath}", http.StripPrefix("/swagger/", http.FileServer(http.Dir(swaggerDir))))
 
 	apiHandler := api.HandlerWithOptions(s.handler, api.ChiServerOptions{
 		BaseRouter: r,

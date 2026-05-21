@@ -214,7 +214,7 @@ func (s *Storage) listEvents(ctx context.Context, userID string, start, end time
 	return events, nil
 }
 
-// GetEventsForNotification возвращает события, для которых нужно отправить уведомление
+// GetEventsForNotification возвращает события, для которых нужно отправить уведомление.
 // События выбираются, у которых:
 // - notify_before > 0
 // - start_time - notify_before <= now
@@ -263,7 +263,7 @@ func (s *Storage) GetEventsForNotification(ctx context.Context, now time.Time) (
 	return events, nil
 }
 
-// DeleteOldEvents удаляет события старше 1 года
+// DeleteOldEvents удаляет события старше 1 года.
 func (s *Storage) DeleteOldEvents(ctx context.Context, cutoff time.Time) error {
 	query := `DELETE FROM events WHERE start_time < $1`
 	result, err := s.db.ExecContext(ctx, query, cutoff)

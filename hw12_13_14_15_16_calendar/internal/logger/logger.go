@@ -17,8 +17,8 @@ const (
 	LevelError
 )
 
-// LoggerI интерфейс для логгера
-type LoggerI interface {
+// LoggerIface интерфейс для логгера
+type LoggerIface interface {
 	Debug(msg string, args ...any)
 	Info(msg string, args ...any)
 	Warn(msg string, args ...any)

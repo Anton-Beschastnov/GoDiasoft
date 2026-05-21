@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -47,9 +50,11 @@ func main() {
 		log.Fatalf("failed to set dialect: %v", err)
 	}
 
-	// goose требует только .up.sql файлы в директории, .down.sql файлы игнорируются
-	// при запуске миграций вверх
-	if err := goose.Run("up", db, migrationsDir); err != nil {
+	// Создаем контекст с обработкой сигналов
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	if err := goose.RunContext(ctx, "up", db, migrationsDir); err != nil {
 		log.Fatalf("failed to run migrations: %v", err)
 	}
 

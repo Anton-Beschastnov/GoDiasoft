@@ -9,15 +9,15 @@ import (
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/logger"
 )
 
-// Config конфигурация scheduler
+// Config конфигурация scheduler.
 type Config struct {
-	ScanInterval time.Duration `yaml:"scan_interval"`
-	KafkaTopic   string        `yaml:"kafka_topic"`
+	ScanInterval time.Duration `yaml:"scanInterval"`
+	KafkaTopic   string        `yaml:"kafkaTopic"`
 }
 
 // Scheduler процесс для отправки уведомлений
 type Scheduler struct {
-	logger     logger.LoggerI
+	logger     logger.LoggerIface
 	storage    app.Storage
 	producer   kafka.ProducerInterface
 	config     Config
@@ -25,7 +25,7 @@ type Scheduler struct {
 }
 
 // New создает новый scheduler
-func New(logger logger.LoggerI, storage app.Storage, producer kafka.ProducerInterface, config Config) *Scheduler {
+func New(logger logger.LoggerIface, storage app.Storage, producer kafka.ProducerInterface, config Config) *Scheduler {
 	return &Scheduler{
 		logger:     logger,
 		storage:    storage,

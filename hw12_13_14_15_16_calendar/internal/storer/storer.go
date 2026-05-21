@@ -11,21 +11,21 @@ import (
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/storage"
 )
 
-// Config конфигурация storer
+// Config конфигурация storer.
 type Config struct {
-	KafkaTopic string `yaml:"kafka_topic"`
+	KafkaTopic string `yaml:"kafkaTopic"`
 }
 
 // Storer процесс для сохранения уведомлений
 type Storer struct {
-	logger   logger.LoggerI
+	logger   logger.LoggerIface
 	storage  app.Storage
 	consumer kafka.ConsumerInterface
 	config   Config
 }
 
 // New создает новый storer
-func New(logger logger.LoggerI, storage app.Storage, consumer kafka.ConsumerInterface, config Config) *Storer {
+func New(logger logger.LoggerIface, storage app.Storage, consumer kafka.ConsumerInterface, config Config) *Storer {
 	return &Storer{
 		logger:   logger,
 		storage:  storage,

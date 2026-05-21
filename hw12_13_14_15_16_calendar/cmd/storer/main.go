@@ -97,7 +97,7 @@ func main() {
 	}()
 
 	// Запуск storer
-	storer := storer.New(logg, storage, consumer, storer.Config{
+	storerService := storer.New(logg, storage, consumer, storer.Config{
 		KafkaTopic: config.Storer.KafkaTopic,
 	})
 
@@ -105,7 +105,7 @@ func main() {
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
-	if err := storer.Run(ctx); err != nil {
+	if err := storerService.Run(ctx); err != nil {
 		logg.Error("storer error", "error", err)
 		os.Exit(1)
 	}
