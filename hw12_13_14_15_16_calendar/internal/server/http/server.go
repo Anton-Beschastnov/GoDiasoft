@@ -9,6 +9,7 @@ import (
 
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/api"
 	"github.com/go-chi/chi/v5"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 type Server struct {
@@ -37,6 +38,15 @@ func NewServer(logger Logger, handler api.ServerInterface, host string, port int
 
 func (s *Server) Start(_ context.Context) error {
 	r := chi.NewRouter()
+
+	// Swagger UI - используем файлы для обслуживания swagger.json
+	r.Handle("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"),
+		httpSwagger.URL("http://localhost:8080/swagger/doc.json"),
+	))
+
+	// Обслуживаем swagger/doc.json как статический файл
+	r.Handle("/swagger/doc.json", http.StripPrefix("/swagger/", http.FileServer(http.Dir("./swagger"))))
 
 	apiHandler := api.HandlerWithOptions(s.handler, api.ChiServerOptions{
 		BaseRouter: r,
