@@ -1,0 +1,330 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Calendar API",
+    "description": "REST API для сервиса календаря",
+    "version": "1.0.0"
+  },
+  "host": "localhost:8080",
+  "schemes": [
+    "http"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/events": {
+      "post": {
+        "operationId": "CreateEvent",
+        "summary": "Создать новое событие",
+        "description": "Создаёт новое календарное событие",
+        "tags": [
+          "events"
+        ],
+        "parameters": [
+          {
+            "name": "CreateEventRequest",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "description": "Заголовок события"
+                },
+                "start_time": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Дата и время начала события"
+                },
+                "end_time": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Дата и время окончания события"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Описание события"
+                },
+                "user_id": {
+                  "type": "string",
+                  "description": "ID пользователя, владельца события"
+                },
+                "notify_before": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "За сколько наносекунд высылать уведомление"
+                }
+              },
+              "required": [
+                "title",
+                "start_time",
+                "end_time",
+                "user_id"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Событие успешно создано",
+            "schema": {
+              "$ref": "#/definitions/Event"
+            }
+          },
+          "400": {
+            "description": "Некорректные данные события"
+          },
+          "409": {
+            "description": "Время уже занято другим событием"
+          }
+        }
+      },
+      "get": {
+        "operationId": "ListEvents",
+        "summary": "Получить список событий",
+        "description": "Возвращает список событий для указанного пользователя за указанный период",
+        "tags": [
+          "events"
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "ID пользователя",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "format": "date-time",
+            "description": "Дата начала периода",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "day",
+              "week",
+              "month"
+            ],
+            "default": "day",
+            "description": "Период для получения событий",
+            "schema": {
+              "type": "string",
+              "enum": ["day", "week", "month"],
+              "default": "day"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список событий",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Event"
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса"
+          }
+        }
+      }
+    },
+    "/events/{id}": {
+      "get": {
+        "operationId": "GetEvent",
+        "summary": "Получить событие по ID",
+        "description": "Возвращает событие с указанным ID",
+        "tags": [
+          "events"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "ID события",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Событие найдено",
+            "schema": {
+              "$ref": "#/definitions/Event"
+            }
+          },
+          "404": {
+            "description": "Событие не найдено"
+          }
+        }
+      },
+      "put": {
+        "operationId": "UpdateEvent",
+        "summary": "Обновить событие",
+        "description": "Обновляет существующее событие",
+        "tags": [
+          "events"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "ID события",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "UpdateEventRequest",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "description": "Заголовок события"
+                },
+                "start_time": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Дата и время начала события"
+                },
+                "end_time": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Дата и время окончания события"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Описание события"
+                },
+                "notify_before": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "За сколько наносекунд высылать уведомление"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Событие успешно обновлено",
+            "schema": {
+              "$ref": "#/definitions/Event"
+            }
+          },
+          "400": {
+            "description": "Некорректные данные события"
+          },
+          "404": {
+            "description": "Событие не найдено"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "DeleteEvent",
+        "summary": "Удалить событие",
+        "description": "Удаляет событие с указанным ID",
+        "tags": [
+          "events"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "ID события",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Событие успешно удалено"
+          },
+          "404": {
+            "description": "Событие не найдено"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Event": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Уникальный идентификатор события"
+        },
+        "title": {
+          "type": "string",
+          "description": "Заголовок события"
+        },
+        "start_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Дата и время начала события"
+        },
+        "end_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Дата и время окончания события"
+        },
+        "description": {
+          "type": "string",
+          "description": "Описание события"
+        },
+        "user_id": {
+          "type": "string",
+          "description": "ID пользователя, владельца события"
+        },
+        "notify_before": {
+          "type": "integer",
+          "format": "int64",
+          "description": "За сколько наносекунд высылать уведомление"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "start_time",
+        "end_time",
+        "user_id"
+      ]
+    }
+  }
+}
