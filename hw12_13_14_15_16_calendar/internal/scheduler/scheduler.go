@@ -76,7 +76,7 @@ func (s *Scheduler) runOnce(ctx context.Context, now time.Time) error {
 
 		topic := s.config.KafkaTopic
 		if topic == "" {
-			topic = "calendar_notifications" 
+			topic = "calendar_notifications"
 		}
 
 		if err := s.producer.Send(ctx, topic, notification); err != nil {

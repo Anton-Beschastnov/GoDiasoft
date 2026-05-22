@@ -21,6 +21,7 @@ issues:
         - unparam
         - empty-block
         - var-naming
+        - stylecheck
 
     - path: _test\.go
       linters:
