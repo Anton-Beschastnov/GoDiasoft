@@ -1,0 +1,21 @@
+logger:
+  level: "info"
+
+http:
+  host: "127.0.0.1"
+  port: 8081
+
+storage:
+  type: "sql"  # "memory" или "sql"
+
+database:
+  host: "localhost"
+  port: 5432
+  user: "calendar"
+  password: "calendar"
+  database: "calendar"
+
+kafka:
+  bootstrap_servers:
+    - "localhost:9092"
+  topic: "calendar_notifications"
