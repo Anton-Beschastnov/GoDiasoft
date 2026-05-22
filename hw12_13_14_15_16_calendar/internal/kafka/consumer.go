@@ -9,13 +9,13 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-// Consumer реализация ConsumerInterface
+// Consumer реализация ConsumerInterface.
 type Consumer struct {
 	reader *kafka.Reader
 	config Config
 }
 
-// NewConsumer создает новый consumer
+// NewConsumer создает новый consumer.
 func NewConsumer(cfg Config) (*Consumer, error) {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:     cfg.BootstrapServers,
@@ -33,7 +33,7 @@ func NewConsumer(cfg Config) (*Consumer, error) {
 	}, nil
 }
 
-// Consume читает сообщения из топика и вызывает handler для каждого уведомления
+// Consume читает сообщения из топика и вызывает handler для каждого уведомления.
 func (c *Consumer) Consume(ctx context.Context, _ string, handler func(*Notification) error) error {
 	for {
 		select {
@@ -65,7 +65,7 @@ func (c *Consumer) Consume(ctx context.Context, _ string, handler func(*Notifica
 	}
 }
 
-// Close закрывает consumer
+// Close закрывает consumer.
 func (c *Consumer) Close() error {
 	return c.reader.Close()
 }
