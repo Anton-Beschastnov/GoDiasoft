@@ -17,13 +17,12 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
-// helperUUID creates UUID from string for tests.
 func helperUUID(s string) openapi_types.UUID {
 	u, err := uuid.Parse(s)
 	if err != nil {
 		panic(err)
 	}
-	return openapi_types.UUID(u) //nolint:unconvert
+	return openapi_types.UUID(u)
 }
 
 func newTestLogger() logger.Iface {
@@ -42,7 +41,6 @@ func TestListEvents(t *testing.T) {
 	h := newTestHandler()
 	ctx := context.Background()
 
-	// Create test events
 	event1 := storage.Event{
 		ID:        helperUUID("00000000-0000-0000-0000-000000000001").String(),
 		Title:     "Event 1",
@@ -69,7 +67,6 @@ func TestListEvents(t *testing.T) {
 	_ = h.storage.CreateEvent(ctx, event2)
 	_ = h.storage.CreateEvent(ctx, event3)
 
-	// Test missing user_id
 	req := httptest.NewRequest(http.MethodGet, "/events?start_date=2024-01-15", nil)
 	w := httptest.NewRecorder()
 	h.ListEvents(w, req, api.ListEventsParams{})
@@ -77,7 +74,6 @@ func TestListEvents(t *testing.T) {
 		t.Errorf("expected status 400, got %d", resp.StatusCode)
 	}
 
-	// Test missing start_date
 	req = httptest.NewRequest(http.MethodGet, "/events?user_id=user1", nil)
 	w = httptest.NewRecorder()
 	h.ListEvents(w, req, api.ListEventsParams{UserId: "user1"})
@@ -85,7 +81,6 @@ func TestListEvents(t *testing.T) {
 		t.Errorf("expected status 400, got %d", resp.StatusCode)
 	}
 
-	// Test day period
 	day := api.Day
 	req = httptest.NewRequest(http.MethodGet, "/events?user_id=user1&start_date=2024-01-15", nil)
 	w = httptest.NewRecorder()
@@ -106,7 +101,6 @@ func TestListEvents(t *testing.T) {
 		t.Errorf("expected 2 events, got %d", len(events))
 	}
 
-	// Test week period
 	week := api.Week
 	req = httptest.NewRequest(http.MethodGet, "/events?user_id=user1&start_date=2024-01-15", nil)
 	w = httptest.NewRecorder()
@@ -126,7 +120,6 @@ func TestListEvents(t *testing.T) {
 		t.Errorf("expected 3 events for week, got %d", len(events))
 	}
 
-	// Test month period
 	month := api.Month
 	req = httptest.NewRequest(http.MethodGet, "/events?user_id=user1&start_date=2024-01-01", nil)
 	w = httptest.NewRecorder()
@@ -150,7 +143,6 @@ func TestListEvents(t *testing.T) {
 func TestCreateEvent(t *testing.T) {
 	h := newTestHandler()
 
-	// Test missing title
 	reqBody := map[string]interface{}{
 		"start_time": time.Now().Format(time.RFC3339),
 		"end_time":   time.Now().Add(time.Hour).Format(time.RFC3339),
@@ -164,7 +156,6 @@ func TestCreateEvent(t *testing.T) {
 		t.Errorf("expected status 400, got %d", resp.StatusCode)
 	}
 
-	// Test missing start_time
 	reqBody = map[string]interface{}{
 		"title":    "Test Event",
 		"end_time": time.Now().Add(time.Hour).Format(time.RFC3339),
@@ -178,7 +169,6 @@ func TestCreateEvent(t *testing.T) {
 		t.Errorf("expected status 400, got %d", resp.StatusCode)
 	}
 
-	// Test missing end_time
 	reqBody = map[string]interface{}{
 		"title":      "Test Event",
 		"start_time": time.Now().Format(time.RFC3339),
@@ -192,7 +182,6 @@ func TestCreateEvent(t *testing.T) {
 		t.Errorf("expected status 400, got %d", resp.StatusCode)
 	}
 
-	// Test missing user_id
 	reqBody = map[string]interface{}{
 		"title":      "Test Event",
 		"start_time": time.Now().Format(time.RFC3339),
@@ -206,7 +195,6 @@ func TestCreateEvent(t *testing.T) {
 		t.Errorf("expected status 400, got %d", resp.StatusCode)
 	}
 
-	// Test valid event creation
 	reqBody = map[string]interface{}{
 		"title":      "Test Event",
 		"start_time": time.Now().Format(time.RFC3339),
@@ -232,7 +220,6 @@ func TestCreateEvent(t *testing.T) {
 		t.Errorf("expected user_id 'user1', got %s", createdEvent.UserID)
 	}
 
-	// Test duplicate event (date busy) - same time slot
 	req = httptest.NewRequest(http.MethodPost, "/events", bytes.NewReader(body))
 	w = httptest.NewRecorder()
 	h.CreateEvent(w, req)
@@ -245,7 +232,6 @@ func TestGetEvent(t *testing.T) {
 	h := newTestHandler()
 	ctx := context.Background()
 
-	// Create test event
 	event := storage.Event{
 		ID:        helperUUID("00000000-0000-0000-0000-000000000001").String(),
 		Title:     "Test Event",
@@ -255,7 +241,6 @@ func TestGetEvent(t *testing.T) {
 	}
 	_ = h.storage.CreateEvent(ctx, event)
 
-	// Test get existing event
 	req := httptest.NewRequest(http.MethodGet, "/events/"+event.ID, nil)
 	w := httptest.NewRecorder()
 	h.GetEvent(w, req, helperUUID(event.ID))
@@ -271,7 +256,6 @@ func TestGetEvent(t *testing.T) {
 		t.Errorf("expected title 'Test Event', got %s", gotEvent.Title)
 	}
 
-	// Test get non-existing event
 	req = httptest.NewRequest(http.MethodGet, "/events/nonexistent", nil)
 	w = httptest.NewRecorder()
 	h.GetEvent(w, req, helperUUID("00000000-0000-0000-0000-000000000000"))
@@ -284,7 +268,6 @@ func TestUpdateEvent(t *testing.T) {
 	h := newTestHandler()
 	ctx := context.Background()
 
-	// Create test event
 	event := storage.Event{
 		ID:        helperUUID("00000000-0000-0000-0000-000000000001").String(),
 		Title:     "Original Title",
@@ -294,7 +277,6 @@ func TestUpdateEvent(t *testing.T) {
 	}
 	_ = h.storage.CreateEvent(ctx, event)
 
-	// Test update non-existing event
 	reqBody := map[string]interface{}{
 		"title": "Updated Title",
 	}
@@ -306,7 +288,6 @@ func TestUpdateEvent(t *testing.T) {
 		t.Errorf("expected status 404, got %d", resp.StatusCode)
 	}
 
-	// Test update existing event
 	reqBody = map[string]interface{}{
 		"title": "Updated Title",
 	}
@@ -331,7 +312,6 @@ func TestDeleteEvent(t *testing.T) {
 	h := newTestHandler()
 	ctx := context.Background()
 
-	// Create test event
 	event := storage.Event{
 		ID:        helperUUID("00000000-0000-0000-0000-000000000001").String(),
 		Title:     "Test Event",
@@ -341,7 +321,6 @@ func TestDeleteEvent(t *testing.T) {
 	}
 	_ = h.storage.CreateEvent(ctx, event)
 
-	// Test delete non-existing event
 	req := httptest.NewRequest(http.MethodDelete, "/events/nonexistent", nil)
 	w := httptest.NewRecorder()
 	h.DeleteEvent(w, req, helperUUID("00000000-0000-0000-0000-000000000000"))
@@ -349,7 +328,6 @@ func TestDeleteEvent(t *testing.T) {
 		t.Errorf("expected status 404, got %d", resp.StatusCode)
 	}
 
-	// Test delete existing event
 	req = httptest.NewRequest(http.MethodDelete, "/events/"+event.ID, nil)
 	w = httptest.NewRecorder()
 	h.DeleteEvent(w, req, helperUUID(event.ID))
@@ -357,7 +335,6 @@ func TestDeleteEvent(t *testing.T) {
 		t.Errorf("expected status 204, got %d", resp.StatusCode)
 	}
 
-	// Verify event is deleted
 	req = httptest.NewRequest(http.MethodGet, "/events/"+event.ID, nil)
 	w = httptest.NewRecorder()
 	h.GetEvent(w, req, helperUUID(event.ID))
@@ -392,7 +369,6 @@ func TestListEventsDifferentUser(t *testing.T) {
 	h := newTestHandler()
 	ctx := context.Background()
 
-	// Create events for different users
 	event1 := storage.Event{
 		ID:        helperUUID("00000000-0000-0000-0000-000000000001").String(),
 		Title:     "User1 Event",
@@ -411,7 +387,6 @@ func TestListEventsDifferentUser(t *testing.T) {
 	_ = h.storage.CreateEvent(ctx, event1)
 	_ = h.storage.CreateEvent(ctx, event2)
 
-	// List events for user1
 	req := httptest.NewRequest(http.MethodGet, "/events?user_id=user1&start_date=2024-01-15", nil)
 	w := httptest.NewRecorder()
 	day := api.Day
@@ -435,7 +410,6 @@ func TestListEventsDifferentUser(t *testing.T) {
 		t.Errorf("expected 'User1 Event', got %s", events[0].Title)
 	}
 
-	// List events for user2
 	req = httptest.NewRequest(http.MethodGet, "/events?user_id=user2&start_date=2024-01-15", nil)
 	w = httptest.NewRecorder()
 	h.ListEvents(w, req, api.ListEventsParams{
@@ -461,7 +435,6 @@ func TestListEventsDifferentUser(t *testing.T) {
 func TestCreateEventWithOptionalFields(t *testing.T) {
 	h := newTestHandler()
 
-	// Test event with all optional fields
 	reqBody := map[string]interface{}{
 		"title":         "Event with all fields",
 		"start_time":    time.Now().Format(time.RFC3339),
@@ -494,7 +467,6 @@ func TestUpdateEventPartialUpdate(t *testing.T) {
 	h := newTestHandler()
 	ctx := context.Background()
 
-	// Create test event
 	event := storage.Event{
 		ID:          helperUUID("00000000-0000-0000-0000-000000000001").String(),
 		Title:       "Original Title",
@@ -505,7 +477,6 @@ func TestUpdateEventPartialUpdate(t *testing.T) {
 	}
 	_ = h.storage.CreateEvent(ctx, event)
 
-	// Test partial update (only title)
 	reqBody := map[string]interface{}{
 		"title": "Updated Title",
 	}

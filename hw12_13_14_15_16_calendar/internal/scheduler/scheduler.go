@@ -9,13 +9,11 @@ import (
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/logger"
 )
 
-// Config конфигурация scheduler.
 type Config struct {
 	ScanInterval time.Duration `yaml:"scanInterval"`
 	KafkaTopic   string        `yaml:"kafkaTopic"`
 }
 
-// Scheduler процесс для отправки уведомлений
 type Scheduler struct {
 	logger     logger.Iface
 	storage    app.Storage
@@ -24,7 +22,6 @@ type Scheduler struct {
 	cutoffTime time.Time
 }
 
-// New создает новый scheduler
 func New(logger logger.Iface, storage app.Storage, producer kafka.ProducerInterface, config Config) *Scheduler {
 	return &Scheduler{
 		logger:     logger,
@@ -35,7 +32,6 @@ func New(logger logger.Iface, storage app.Storage, producer kafka.ProducerInterf
 	}
 }
 
-// Run запускает scheduler
 func (s *Scheduler) Run(ctx context.Context) error {
 	s.logger.Info("scheduler is running", "scan_interval", s.config.ScanInterval, "kafka_topic", s.config.KafkaTopic)
 
@@ -48,7 +44,7 @@ func (s *Scheduler) Run(ctx context.Context) error {
 			s.logger.Info("scheduler stopped")
 			return nil
 		case <-ticker.C:
-			// Запускаем проверку в UTC, чтобы избежать проблем с часовыми поясами
+			
 			if err := s.runOnce(ctx, time.Now().UTC()); err != nil {
 				s.logger.Error("scheduler error", "error", err)
 			}
@@ -56,11 +52,9 @@ func (s *Scheduler) Run(ctx context.Context) error {
 	}
 }
 
-// runOnce выполняет один цикл обработки
 func (s *Scheduler) runOnce(ctx context.Context, now time.Time) error {
 	s.logger.Info("--- Starting scheduler scan ---", "scan_time_utc", now)
 
-	// Получаем события для уведомления
 	events, err := s.storage.GetEventsForNotification(ctx, now)
 	if err != nil {
 		return err
@@ -73,7 +67,6 @@ func (s *Scheduler) runOnce(ctx context.Context, now time.Time) error {
 
 	s.logger.Info("Found events for notification", "count", len(events))
 
-	// Отправляем уведомления в Kafka
 	for _, event := range events {
 		notification := &kafka.Notification{
 			EventID:   event.ID,
@@ -84,7 +77,7 @@ func (s *Scheduler) runOnce(ctx context.Context, now time.Time) error {
 
 		topic := s.config.KafkaTopic
 		if topic == "" {
-			topic = "calendar_notifications" // default topic
+			topic = "calendar_notifications" 
 		}
 
 		if err := s.producer.Send(ctx, topic, notification); err != nil {
@@ -94,7 +87,6 @@ func (s *Scheduler) runOnce(ctx context.Context, now time.Time) error {
 		}
 	}
 
-	// Удаляем старые события
 	if err := s.storage.DeleteOldEvents(ctx, s.cutoffTime); err != nil {
 		s.logger.Error("failed to delete old events", "error", err)
 	}

@@ -6,7 +6,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config общая конфигурация приложения
 type Config struct {
 	Logger LoggerConfig `yaml:"logger"`
 	DB     DBConfig     `yaml:"database"`
@@ -14,12 +13,10 @@ type Config struct {
 	Storer StorerConfig `yaml:"storer"`
 }
 
-// LoggerConfig конфигурация логгера
 type LoggerConfig struct {
 	Level string `yaml:"level"`
 }
 
-// DBConfig конфигурация базы данных
 type DBConfig struct {
 	Host     string `yaml:"host"`
 	Port     int    `yaml:"port"`
@@ -28,18 +25,15 @@ type DBConfig struct {
 	Database string `yaml:"database"`
 }
 
-// KafkaConfig конфигурация Kafka.
 type KafkaConfig struct {
 	BootstrapServers []string `yaml:"bootstrapServers"`
 	Topic            string   `yaml:"topic"`
 }
 
-// StorerConfig конфигурация storer.
 type StorerConfig struct {
 	KafkaTopic string `yaml:"kafkaTopic"`
 }
 
-// NewConfig загружает конфигурацию из файла
 func NewConfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
