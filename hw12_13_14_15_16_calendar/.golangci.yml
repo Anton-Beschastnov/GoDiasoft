@@ -11,6 +11,17 @@ linters-settings:
 
 issues:
   exclude-rules:
+    # Исключаем авто-сгенерированный файл API из всех проверок
+    - path: api/calendarapi\.go
+      linters:
+        - revive
+        - lll
+        - gofumpt
+        - tagliatelle
+        - unparam
+        - empty-block
+        - var-naming
+
     - path: _test\.go
       linters:
         - errcheck

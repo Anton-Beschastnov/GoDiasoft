@@ -34,23 +34,16 @@ func NewServer(logger logger.Iface, handler api.ServerInterface, host string, po
 func (s *Server) Start(_ context.Context) error {
 	r := chi.NewRouter()
 
-	// Добавляем middleware для логирования
 	r.Use(s.loggingMiddleware)
 
-	// --- ИСПРАВЛЕННАЯ ЛОГИКА SWAGGER ---
-
-	// 1. Обслуживаем сам файл doc.json как статику
 	r.Get("/swagger/doc.json", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./swagger/doc.json")
 	})
 
-	// 2. Обслуживаем Swagger UI, который будет использовать ОТНОСИТЕЛЬНЫЙ URL
 	r.Get("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL("doc.json"), // Используем относительный путь!
+		httpSwagger.URL("doc.json"),
 	))
-	// -----------------------------------------
 
-	// API хендлеры
 	apiHandler := api.HandlerWithOptions(s.handler, api.ChiServerOptions{
 		BaseRouter: r,
 		ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
@@ -74,7 +67,7 @@ func (s *Server) Start(_ context.Context) error {
 	return nil
 }
 
-// loggingMiddleware логирует каждый входящий запрос
+// loggingMiddleware логирует каждый входящий запрос.
 func (s *Server) loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

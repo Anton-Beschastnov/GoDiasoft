@@ -113,7 +113,6 @@ func (s *Storage) ListEventsForMonth(_ context.Context, userID string, startDate
 	return s.filterEvents(userID, startOfMonth, endOfMonth), nil
 }
 
-// GetEventsForNotification возвращает события, для которых нужно отправить уведомление
 func (s *Storage) GetEventsForNotification(_ context.Context, now time.Time) ([]storage.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -129,7 +128,6 @@ func (s *Storage) GetEventsForNotification(_ context.Context, now time.Time) ([]
 	return result, nil
 }
 
-// DeleteOldEvents удаляет события старше 1 года
 func (s *Storage) DeleteOldEvents(_ context.Context, cutoff time.Time) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -142,7 +140,6 @@ func (s *Storage) DeleteOldEvents(_ context.Context, cutoff time.Time) error {
 	return nil
 }
 
-// notifications хранит уведомления
 type notifications struct {
 	mu            sync.RWMutex
 	notifications map[string]*storage.Notification
@@ -174,12 +171,10 @@ func (n *notifications) Get(_ context.Context, id string) (*storage.Notification
 	return notification, nil
 }
 
-// SaveNotification сохраняет уведомление
 func (s *Storage) SaveNotification(ctx context.Context, notification *storage.Notification) error {
 	return s.notifications.Save(ctx, notification)
 }
 
-// GetNotificationByID возвращает уведомление по ID
 func (s *Storage) GetNotificationByID(ctx context.Context, id string) (*storage.Notification, error) {
 	return s.notifications.Get(ctx, id)
 }

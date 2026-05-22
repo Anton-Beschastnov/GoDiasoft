@@ -22,7 +22,7 @@ func helperUUID(s string) openapi_types.UUID {
 	if err != nil {
 		panic(err)
 	}
-	return openapi_types.UUID(u)
+	return u
 }
 
 func newTestLogger() logger.Iface {
