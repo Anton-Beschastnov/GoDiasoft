@@ -3,6 +3,9 @@ SCHEDULER_BIN := "./bin/calendar_scheduler"
 STORER_BIN := "./bin/calendar_storer"
 DOCKER_IMG="calendar:develop"
 
+# Переменная для goose, чтобы не дублировать строку подключения
+DB_STRING="postgres://calendar:calendar@localhost:5432/calendar?sslmode=disable"
+
 GIT_HASH := $(shell git log --format="%h" -n 1)
 BUILD_DATE := $(shell date -u +%Y-%m-%dT%H:%M:%S)
 LDFLAGS := -X main.release="develop" -X main.buildDate=$(BUILD_DATE) -X main.gitHash=$(GIT_HASH)
@@ -53,20 +56,20 @@ lint:
 	go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8 run ./...
 	go mod tidy
 
-migrate: build-migrate
-	./bin/migrate -dburl "postgres://calendar:calendar@localhost:5432/calendar?sslmode=disable"
-
-build-migrate:
-	@mkdir -p ./bin
-	go build -v -o ./bin/migrate ./cmd/migrate
+# Упрощенные цели для миграций через goose
+migrate-up:
+	go run github.com/pressly/goose/v3/cmd/goose@v3.20.0 -dir ./migrations postgres "$(DB_STRING)" up
 
 migrate-down:
-	goose -dir ./migrations postgres "postgres://calendar:calendar@localhost:5432/calendar?sslmode=disable" down
+	go run github.com/pressly/goose/v3/cmd/goose@v3.20.0 -dir ./migrations postgres "$(DB_STRING)" down
 
 migrate-reset:
-	goose -dir ./migrations postgres "postgres://calendar:calendar@localhost:5432/calendar?sslmode=disable" down 2
+	go run github.com/pressly/goose/v3/cmd/goose@v3.20.0 -dir ./migrations postgres "$(DB_STRING)" down 2
+
+migrate-status:
+	go run github.com/pressly/goose/v3/cmd/goose@v3.20.0 -dir ./migrations postgres "$(DB_STRING)" status
 
 clean:
 	rm -rf ./bin
 
-.PHONY: build build-calendar build-scheduler build-storer run run-scheduler run-storer build-img run-img version test lint migrate migrate-down clean start
+.PHONY: build build-calendar build-scheduler build-storer run run-scheduler run-storer build-img run-img version test lint migrate-up migrate-down migrate-reset migrate-status clean start

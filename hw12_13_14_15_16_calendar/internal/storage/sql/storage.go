@@ -4,12 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/storage"
 	_ "github.com/jackc/pgx/v5/stdlib" // blank import to register pgx driver
-	"github.com/pressly/goose/v3"
 )
 
 type Storage struct {
@@ -32,13 +30,6 @@ func (s *Storage) Connect(ctx context.Context) error {
 	}
 
 	s.db = db
-
-	// Применяем миграции при подключении к базе данных
-	goose.SetBaseFS(os.DirFS("migrations"))
-	if err := goose.Up(db, "migrations"); err != nil {
-		return fmt.Errorf("failed to run migrations: %w", err)
-	}
-
 	return nil
 }
 

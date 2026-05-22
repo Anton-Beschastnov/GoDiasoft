@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/api"
+	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/logger"
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/storage"
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -14,13 +15,13 @@ import (
 
 type CalendarHandler struct {
 	storage storage.Storage
-	logger  Logger
+	logger  logger.Iface
 }
 
-func NewCalendarHandler(logger Logger, st storage.Storage) *CalendarHandler {
+func NewCalendarHandler(log logger.Iface, st storage.Storage) *CalendarHandler {
 	return &CalendarHandler{
 		storage: st,
-		logger:  logger,
+		logger:  log,
 	}
 }
 

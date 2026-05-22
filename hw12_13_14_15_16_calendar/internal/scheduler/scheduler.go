@@ -17,7 +17,7 @@ type Config struct {
 
 // Scheduler процесс для отправки уведомлений
 type Scheduler struct {
-	logger     logger.LoggerIface
+	logger     logger.Iface
 	storage    app.Storage
 	producer   kafka.ProducerInterface
 	config     Config
@@ -25,7 +25,7 @@ type Scheduler struct {
 }
 
 // New создает новый scheduler
-func New(logger logger.LoggerIface, storage app.Storage, producer kafka.ProducerInterface, config Config) *Scheduler {
+func New(logger logger.Iface, storage app.Storage, producer kafka.ProducerInterface, config Config) *Scheduler {
 	return &Scheduler{
 		logger:     logger,
 		storage:    storage,

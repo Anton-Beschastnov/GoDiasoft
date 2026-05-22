@@ -18,14 +18,14 @@ type Config struct {
 
 // Storer процесс для сохранения уведомлений
 type Storer struct {
-	logger   logger.LoggerIface
+	logger   logger.Iface
 	storage  app.Storage
 	consumer kafka.ConsumerInterface
 	config   Config
 }
 
 // New создает новый storer
-func New(logger logger.LoggerIface, storage app.Storage, consumer kafka.ConsumerInterface, config Config) *Storer {
+func New(logger logger.Iface, storage app.Storage, consumer kafka.ConsumerInterface, config Config) *Storer {
 	return &Storer{
 		logger:   logger,
 		storage:  storage,
