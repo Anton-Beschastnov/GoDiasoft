@@ -9,13 +9,13 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-// Producer реализация ProducerInterface
+// Producer реализация ProducerInterface.
 type Producer struct {
 	writer *kafka.Writer
 	config Config
 }
 
-// NewProducer создает новый producer
+// NewProducer создает новый producer.
 func NewProducer(cfg Config) (*Producer, error) {
 	// В kafka-go, если ты указываешь Topic при создании Writer,
 	// то при отправке сообщения (Message) поле Topic должно быть пустым.
@@ -35,7 +35,7 @@ func NewProducer(cfg Config) (*Producer, error) {
 	}, nil
 }
 
-// Send отправляет уведомление в топик
+// Send отправляет уведомление в топик.
 func (p *Producer) Send(ctx context.Context, topic string, notification *Notification) error {
 	data, err := json.Marshal(notification)
 	if err != nil {
@@ -56,7 +56,7 @@ func (p *Producer) Send(ctx context.Context, topic string, notification *Notific
 	return nil
 }
 
-// Close закрывает producer
+// Close закрывает producer.
 func (p *Producer) Close() error {
 	return p.writer.Close()
 }

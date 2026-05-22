@@ -13,19 +13,19 @@ type Notification struct {
 	UserID    string    `json:"userId"`
 }
 
-// ProducerInterface интерфейс для отправки сообщений в Kafka
+// ProducerInterface интерфейс для отправки сообщений в Kafka.
 type ProducerInterface interface {
-	// Send отправляет уведомление в топик
+	// Send отправляет уведомление в топик.
 	Send(ctx context.Context, topic string, notification *Notification) error
-	// Close закрывает producer
+	// Close закрывает producer.
 	Close() error
 }
 
-// ConsumerInterface интерфейс для чтения сообщений из Kafka
+// ConsumerInterface интерфейс для чтения сообщений из Kafka.
 type ConsumerInterface interface {
-	// Consume читает сообщения из топика
+	// Consume читает сообщения из топика.
 	Consume(ctx context.Context, topic string, handler func(*Notification) error) error
-	// Close закрывает consumer
+	// Close закрывает consumer.
 	Close() error
 }
 
