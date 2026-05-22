@@ -51,7 +51,6 @@ func (c *Consumer) Consume(ctx context.Context, _ string, handler func(*Notifica
 			}
 
 			if err := handler(&notification); err != nil {
-
 				continue
 			}
 

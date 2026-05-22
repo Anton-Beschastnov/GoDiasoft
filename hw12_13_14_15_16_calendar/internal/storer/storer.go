@@ -16,7 +16,7 @@ type Config struct {
 	KafkaTopic string `yaml:"kafkaTopic"`
 }
 
-// Storer процесс для сохранения уведомлений
+// Storer процесс для сохранения уведомлений.
 type Storer struct {
 	logger   logger.Iface
 	storage  app.Storage
@@ -24,7 +24,7 @@ type Storer struct {
 	config   Config
 }
 
-// New создает новый storer
+// New создает новый storer.
 func New(logger logger.Iface, storage app.Storage, consumer kafka.ConsumerInterface, config Config) *Storer {
 	return &Storer{
 		logger:   logger,
@@ -34,7 +34,7 @@ func New(logger logger.Iface, storage app.Storage, consumer kafka.ConsumerInterf
 	}
 }
 
-// Run запускает storer
+// Run запускает storer.
 func (s *Storer) Run(ctx context.Context) error {
 	topic := s.config.KafkaTopic
 	if topic == "" {
@@ -42,7 +42,7 @@ func (s *Storer) Run(ctx context.Context) error {
 	}
 	s.logger.Info("storer is running", "kafka_topic", topic)
 
-	// Обработчик уведомлений
+	// Обработчик уведомлений.
 	handler := func(notification *kafka.Notification) error {
 		return s.saveNotification(ctx, notification)
 	}
@@ -50,7 +50,7 @@ func (s *Storer) Run(ctx context.Context) error {
 	return s.consumer.Consume(ctx, topic, handler)
 }
 
-// saveNotification сохраняет уведомление в базу данных
+// saveNotification сохраняет уведомление в базу данных.
 func (s *Storer) saveNotification(ctx context.Context, notification *kafka.Notification) error {
 	dbNotification := &storage.Notification{
 		ID:        notification.EventID,

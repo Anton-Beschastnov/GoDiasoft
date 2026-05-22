@@ -15,7 +15,6 @@ type Producer struct {
 }
 
 func NewProducer(cfg Config) (*Producer, error) {
-
 	writer := &kafka.Writer{
 		Addr:         kafka.TCP(cfg.BootstrapServers...),
 		Balancer:     &kafka.LeastBytes{},

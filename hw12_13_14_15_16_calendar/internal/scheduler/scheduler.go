@@ -44,7 +44,6 @@ func (s *Scheduler) Run(ctx context.Context) error {
 			s.logger.Info("scheduler stopped")
 			return nil
 		case <-ticker.C:
-			
 			if err := s.runOnce(ctx, time.Now().UTC()); err != nil {
 				s.logger.Error("scheduler error", "error", err)
 			}
