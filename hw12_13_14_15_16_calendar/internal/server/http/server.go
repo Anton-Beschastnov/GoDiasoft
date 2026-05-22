@@ -11,6 +11,7 @@ import (
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/logger"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 type Server struct {
@@ -37,12 +38,17 @@ func (s *Server) Start(_ context.Context) error {
 	r.Use(s.loggingMiddleware)
 
 	// --- ИСПРАВЛЕННАЯ ЛОГИКА SWAGGER ---
-	// Мы будем раздавать содержимое папки 'swagger' как статичные файлы.
-	// Это включает в себя и `index.html` от Swagger UI, и сам `doc.json`.
-	swaggerDir := http.Dir("./swagger/")
-	fileServer := http.FileServer(swaggerDir)
-	r.Handle("/swagger/*", http.StripPrefix("/swagger/", fileServer))
-	// ------------------------------------
+
+	// 1. Обслуживаем сам файл doc.json как статику
+	r.Get("/swagger/doc.json", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./swagger/doc.json")
+	})
+
+	// 2. Обслуживаем Swagger UI, который будет использовать ОТНОСИТЕЛЬНЫЙ URL
+	r.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("doc.json"), // Используем относительный путь!
+	))
+	// -----------------------------------------
 
 	// API хендлеры
 	apiHandler := api.HandlerWithOptions(s.handler, api.ChiServerOptions{

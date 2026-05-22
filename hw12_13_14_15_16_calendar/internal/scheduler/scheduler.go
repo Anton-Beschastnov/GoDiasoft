@@ -48,7 +48,8 @@ func (s *Scheduler) Run(ctx context.Context) error {
 			s.logger.Info("scheduler stopped")
 			return nil
 		case <-ticker.C:
-			if err := s.runOnce(ctx); err != nil {
+			// Запускаем проверку в UTC, чтобы избежать проблем с часовыми поясами
+			if err := s.runOnce(ctx, time.Now().UTC()); err != nil {
 				s.logger.Error("scheduler error", "error", err)
 			}
 		}
@@ -56,14 +57,21 @@ func (s *Scheduler) Run(ctx context.Context) error {
 }
 
 // runOnce выполняет один цикл обработки
-func (s *Scheduler) runOnce(ctx context.Context) error {
-	now := time.Now()
+func (s *Scheduler) runOnce(ctx context.Context, now time.Time) error {
+	s.logger.Info("--- Starting scheduler scan ---", "scan_time_utc", now)
 
 	// Получаем события для уведомления
 	events, err := s.storage.GetEventsForNotification(ctx, now)
 	if err != nil {
 		return err
 	}
+
+	if len(events) == 0 {
+		s.logger.Info("No events to notify found.")
+		return nil
+	}
+
+	s.logger.Info("Found events for notification", "count", len(events))
 
 	// Отправляем уведомления в Kafka
 	for _, event := range events {
@@ -82,7 +90,7 @@ func (s *Scheduler) runOnce(ctx context.Context) error {
 		if err := s.producer.Send(ctx, topic, notification); err != nil {
 			s.logger.Error("failed to send notification", "event_id", event.ID, "user_id", event.UserID, "error", err)
 		} else {
-			s.logger.Info("sent notification", "event_id", event.ID, "user_id", event.UserID)
+			s.logger.Info("SENT notification", "event_id", event.ID, "user_id", event.UserID)
 		}
 	}
 

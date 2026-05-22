@@ -17,9 +17,12 @@ type Producer struct {
 
 // NewProducer создает новый producer
 func NewProducer(cfg Config) (*Producer, error) {
+	// В kafka-go, если ты указываешь Topic при создании Writer,
+	// то при отправке сообщения (Message) поле Topic должно быть пустым.
+	// И наоборот: если Topic не указан в Writer, его нужно указывать в Message.
+	// Мы убираем Topic отсюда, так как передаем его динамически в методе Send.
 	writer := &kafka.Writer{
 		Addr:         kafka.TCP(cfg.BootstrapServers...),
-		Topic:        cfg.Topic,
 		Balancer:     &kafka.LeastBytes{},
 		BatchSize:    100,
 		BatchTimeout: 100 * time.Millisecond,
@@ -39,6 +42,7 @@ func (p *Producer) Send(ctx context.Context, topic string, notification *Notific
 		return fmt.Errorf("failed to marshal notification: %w", err)
 	}
 
+	// Указываем топик здесь
 	msg := kafka.Message{
 		Topic: topic,
 		Value: data,

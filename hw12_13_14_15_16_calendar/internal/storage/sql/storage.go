@@ -206,16 +206,17 @@ func (s *Storage) listEvents(ctx context.Context, userID string, start, end time
 }
 
 // GetEventsForNotification возвращает события, для которых нужно отправить уведомление.
-// События выбираются, у которых:
-// - notify_before > 0
-// - start_time - notify_before <= now
-// - start_time > now
 func (s *Storage) GetEventsForNotification(ctx context.Context, now time.Time) ([]storage.Event, error) {
+	// --- ИСПРАВЛЕННЫЙ SQL-ЗАПРОС (v4) ---
+	// Сделаем это максимально надежно. Мы передадим `now` плюс `notify_before`
+	// как параметр, чтобы избежать любых проблем с интервалами внутри SQL.
+
+	// В PostgreSQL мы можем использовать функцию `make_interval(secs => ...)`
 	query := `
 		SELECT id, title, start_time, end_time, description, user_id, notify_before
 		FROM events
 		WHERE notify_before > 0
-		  AND (start_time - notify_before) <= $1
+		  AND start_time <= ($1::timestamp + make_interval(secs => notify_before / 1000000000.0))
 		  AND start_time > $1
 		ORDER BY start_time
 	`
