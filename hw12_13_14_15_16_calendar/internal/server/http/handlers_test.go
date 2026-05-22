@@ -79,7 +79,7 @@ func TestListEvents(t *testing.T) {
 
 	// Test missing start_date
 	req = httptest.NewRequest(http.MethodGet, "/events?user_id=user1", nil)
-	w := httptest.NewRecorder()
+	w = httptest.NewRecorder()
 	h.ListEvents(w, req, api.ListEventsParams{UserId: "user1"})
 	if resp := w.Result(); resp.StatusCode != http.StatusBadRequest {
 		t.Errorf("expected status 400, got %d", resp.StatusCode)
@@ -200,7 +200,7 @@ func TestCreateEvent(t *testing.T) {
 	}
 	body, _ = json.Marshal(reqBody)
 	req = httptest.NewRequest(http.MethodPost, "/events", bytes.NewReader(body))
-	w := httptest.NewRecorder()
+	w = httptest.NewRecorder()
 	h.CreateEvent(w, req)
 	if resp := w.Result(); resp.StatusCode != http.StatusBadRequest {
 		t.Errorf("expected status 400, got %d", resp.StatusCode)
@@ -215,7 +215,7 @@ func TestCreateEvent(t *testing.T) {
 	}
 	body, _ = json.Marshal(reqBody)
 	req = httptest.NewRequest(http.MethodPost, "/events", bytes.NewReader(body))
-	w := httptest.NewRecorder()
+	w = httptest.NewRecorder()
 	h.CreateEvent(w, req)
 	if resp := w.Result(); resp.StatusCode != http.StatusCreated {
 		t.Errorf("expected status 201, got %d", resp.StatusCode)
@@ -351,7 +351,7 @@ func TestDeleteEvent(t *testing.T) {
 
 	// Test delete existing event
 	req = httptest.NewRequest(http.MethodDelete, "/events/"+event.ID, nil)
-	w := httptest.NewRecorder()
+	w = httptest.NewRecorder()
 	h.DeleteEvent(w, req, helperUUID(event.ID))
 	if resp := w.Result(); resp.StatusCode != http.StatusNoContent {
 		t.Errorf("expected status 204, got %d", resp.StatusCode)
