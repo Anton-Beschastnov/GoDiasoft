@@ -8,5 +8,5 @@ RUN go mod download
 
 COPY . .
 
-# Run the integration tests
-CMD ["go", "test", "-v", "./tests/integration/..."]
+# Run the integration tests with a 5-minute timeout
+CMD ["go", "test", "-v", "-timeout", "5m", "./tests/integration/..."]

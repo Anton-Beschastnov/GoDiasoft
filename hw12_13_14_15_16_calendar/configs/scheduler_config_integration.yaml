@@ -1,6 +1,9 @@
 logger:
   level: "info"
 
+storage:
+  type: "sql"
+
 database:
   host: "postgres"
   port: 5432
@@ -13,5 +16,6 @@ kafka:
     - "kafka:9090"
   topic: "calendar_notifications"
 
-storer:
+scheduler:
+  scanInterval: "10s"
   kafkaTopic: "calendar_notifications"

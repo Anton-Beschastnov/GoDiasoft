@@ -18,15 +18,20 @@ services:
       - kraft_combined_logs_int:/bitnami/kafka
     networks:
       - app_int
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9090", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
 
   postgres:
     container_name: postgrescalendar-int
     image: postgres:16-alpine
-    restart: "no"
     environment:
       POSTGRES_DB: "calendar"
       POSTGRES_USER: "calendar"
       POSTGRES_PASSWORD: "calendar"
+      POSTGRES_HOST_AUTH_METHOD: "trust"
       PGDATA: "/var/lib/postgresql/data/pgdata"
     volumes:
       - pg_data_calendar_int:/var/lib/postgresql/data
@@ -34,18 +39,15 @@ services:
       - "5433:5432"
     networks:
       - app_int
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U calendar -d calendar"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  migration:
-    build:
-      context: ..
-      dockerfile: docker/migration.Dockerfile
-    environment:
-      - DB_STRING=postgres://calendar:calendar@postgres:5432/calendar?sslmode=disable
-    depends_on:
-      - postgres
-    networks:
-      - app_int
-    restart: "no"
+  # calendar сам запускает goose-миграции при старте (cmd/calendar/main.go → runMigrations)
+  # отдельный migration-контейнер не нужен — он завершается с кодом 0 и рушит весь стек
+  # через флаг --abort-on-container-exit
 
   calendar:
     build:
@@ -54,31 +56,46 @@ services:
     ports:
       - "8889:8888"
     depends_on:
-      - postgres
-      - kafka
-      - migration
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     networks:
       - app_int
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 8888"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
 
   scheduler:
     build:
       context: ..
       dockerfile: docker/scheduler.Dockerfile
     depends_on:
-      - postgres
-      - kafka
-      - migration
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      calendar:
+        condition: service_healthy
     networks:
       - app_int
+    volumes:
+      - ../configs/scheduler_config_integration.yaml:/scheduler_config.yaml:ro
 
   storer:
     build:
       context: ..
       dockerfile: docker/storer.Dockerfile
     depends_on:
-      - postgres
-      - kafka
-      - migration
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      calendar:
+        condition: service_healthy
     networks:
       - app_int
 
@@ -87,11 +104,19 @@ services:
       context: ..
       dockerfile: docker/integration-tests.Dockerfile
     depends_on:
-      - calendar
+      calendar:
+        condition: service_healthy
+      scheduler:
+        condition: service_started
+      storer:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     networks:
       - app_int
     environment:
       - CALENDAR_API_URL=http://calendar:8888
+      - TEST_DB_STRING=postgres://calendar:calendar@postgres:5432/calendar?sslmode=disable
 
 networks:
   app_int:

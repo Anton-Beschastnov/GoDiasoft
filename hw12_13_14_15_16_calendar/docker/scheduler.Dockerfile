@@ -14,7 +14,11 @@ FROM alpine:latest
 
 WORKDIR /
 
+RUN apk add --no-cache netcat-openbsd
+
 COPY --from=builder /app/scheduler /scheduler
 COPY --from=builder /app/configs/scheduler_config.yaml /scheduler_config.yaml
+COPY docker/scripts/wait-for-it.sh /wait-for-it.sh
+RUN chmod +x /wait-for-it.sh
 
-CMD ["/scheduler", "--config", "/scheduler_config.yaml"]
+CMD ["/wait-for-it.sh", "postgres", "5432", "--", "/scheduler", "--config", "/scheduler_config.yaml"]

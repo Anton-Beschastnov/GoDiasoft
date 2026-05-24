@@ -5,11 +5,9 @@ services:
     ports:
       - "9092:9092"
     environment:
-      # KRaft settings
       - KAFKA_CFG_NODE_ID=1
       - KAFKA_KRAFT_CLUSTER_ID=NkYjFusjSuWA2E5FhAC9Pg
       - KAFKA_CFG_PROCESS_ROLES=controller,broker
-      # Listeners
       - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9091
       - KAFKA_CFG_LISTENERS=PLAINTEXT://:9090,CONTROLLER://:9091,EXTERNAL://:9092
       - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9090,EXTERNAL://localhost:9092
@@ -20,6 +18,11 @@ services:
       - kraft_combined_logs:/bitnami/kafka
     networks:
       - app
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9090", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -29,7 +32,8 @@ services:
       - KAFKA_CLUSTERS_0_NAME=local
       - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9090
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     networks:
       - app
 
@@ -41,6 +45,7 @@ services:
       POSTGRES_DB: "calendar"
       POSTGRES_USER: "calendar"
       POSTGRES_PASSWORD: "calendar"
+      POSTGRES_HOST_AUTH_METHOD: "trust"
       PGDATA: "/var/lib/postgresql/data/pgdata"
     volumes:
       - pg_data_calendar:/var/lib/postgresql/data
@@ -48,16 +53,11 @@ services:
       - "5432:5432"
     networks:
       - app
-
-  migration:
-    build:
-      context: ..
-      dockerfile: docker/migration.Dockerfile
-    depends_on:
-      - postgres
-    networks:
-      - app
-    restart: "no"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U calendar -d calendar"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   calendar:
     build:
@@ -66,9 +66,10 @@ services:
     ports:
       - "8888:8888"
     depends_on:
-      - postgres
-      - kafka
-      - migration
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     networks:
       - app
 
@@ -77,9 +78,8 @@ services:
       context: ..
       dockerfile: docker/scheduler.Dockerfile
     depends_on:
-      - postgres
-      - kafka
-      - migration
+      calendar:
+        condition: service_started # Или service_healthy, если у calendar будет healthcheck
     networks:
       - app
 
@@ -88,9 +88,8 @@ services:
       context: ..
       dockerfile: docker/storer.Dockerfile
     depends_on:
-      - postgres
-      - kafka
-      - migration
+      calendar:
+        condition: service_started # Или service_healthy, если у calendar будет healthcheck
     networks:
       - app
 

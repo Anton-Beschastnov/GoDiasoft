@@ -100,6 +100,10 @@ func (h *CalendarHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "end_time is required", http.StatusBadRequest)
 		return
 	}
+	if !req.EndTime.After(req.StartTime) {
+		http.Error(w, "end_time must be after start_time", http.StatusBadRequest)
+		return
+	}
 	if req.UserID == "" {
 		http.Error(w, "user_id is required", http.StatusBadRequest)
 		return

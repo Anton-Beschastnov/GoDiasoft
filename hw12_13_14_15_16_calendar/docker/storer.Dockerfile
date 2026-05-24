@@ -14,7 +14,11 @@ FROM alpine:latest
 
 WORKDIR /
 
+RUN apk add --no-cache netcat-openbsd
+
 COPY --from=builder /app/storer /storer
 COPY --from=builder /app/configs/storer_config.yaml /storer_config.yaml
+COPY docker/scripts/wait-for-it.sh /wait-for-it.sh
+RUN chmod +x /wait-for-it.sh
 
-CMD ["/storer", "--config", "/storer_config.yaml"]
+CMD ["/wait-for-it.sh", "postgres", "5432", "--", "/storer", "--config", "/storer_config.yaml"]

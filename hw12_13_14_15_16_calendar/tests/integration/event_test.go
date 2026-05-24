@@ -14,19 +14,34 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Event mirrors api.Event from the server.
 type Event struct {
-	ID          int       `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	StartTime   time.Time `json:"start_time"`
-	EndTime     time.Time `json:"end_time"`
-	NotifyBefore time.Duration `json:"notify_before"`
+	ID           string    `json:"id"`
+	Title        string    `json:"title"`
+	Description  string    `json:"description"`
+	StartTime    time.Time `json:"start_time"`
+	EndTime      time.Time `json:"end_time"`
+	UserID       string    `json:"user_id"`
+	NotifyBefore int64     `json:"notify_before"` // nanoseconds
 }
 
+// CreateEventRequest mirrors api.CreateEventRequest.
+type CreateEventRequest struct {
+	Title        string    `json:"title"`
+	Description  *string   `json:"description,omitempty"`
+	StartTime    time.Time `json:"start_time"`
+	EndTime      time.Time `json:"end_time"`
+	UserID       string    `json:"user_id"`
+	NotifyBefore *int64    `json:"notify_before,omitempty"`
+}
+
+// Notification represents the row stored in the notifications table by the storer.
 type Notification struct {
-	ID        int
-	EventID   int
-	Message   string
+	ID        string
+	EventID   string
+	Title     string
+	StartTime time.Time
+	UserID    string
 	CreatedAt time.Time
 }
 
@@ -46,20 +61,38 @@ func getDBConnectionString() string {
 	return connStr
 }
 
+// waitForCalendar blocks until the calendar HTTP API responds or times out.
+func waitForCalendar(t *testing.T, apiURL string) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		resp, err := http.Get(apiURL + "/events?user_id=health&start_date=" + time.Now().Format(time.RFC3339))
+		if err != nil {
+			return false
+		}
+		resp.Body.Close()
+		// Any HTTP response (including 400 for bad params) means server is up.
+		return true
+	}, 60*time.Second, 2*time.Second, "calendar API did not become ready")
+}
+
+// TestEventHappyPath tests creating an event and fetching it by day/week/month listing.
 func TestEventHappyPath(t *testing.T) {
 	apiURL := getCalendarAPIURL()
+	waitForCalendar(t, apiURL)
+
+	const testUserID = "integration-test-user-1"
 
 	startTime := time.Now().Add(1 * time.Hour).UTC().Truncate(time.Second)
-	endTime := startTime.Add(1 * time.Hour).UTC().Truncate(time.Second)
+	endTime := startTime.Add(1 * time.Hour)
 
-	event := Event{
-		Title:       "Important Meeting",
-		Description: "A very important meeting.",
-		StartTime:   startTime,
-		EndTime:     endTime,
+	req := CreateEventRequest{
+		Title:     "Important Meeting",
+		StartTime: startTime,
+		EndTime:   endTime,
+		UserID:    testUserID,
 	}
 
-	bodyBytes, err := json.Marshal(event)
+	bodyBytes, err := json.Marshal(req)
 	require.NoError(t, err)
 
 	resp, err := http.Post(apiURL+"/events", "application/json", bytes.NewBuffer(bodyBytes))
@@ -71,52 +104,107 @@ func TestEventHappyPath(t *testing.T) {
 	require.NoError(t, err)
 	resp.Body.Close()
 
-	require.NotZero(t, createdEvent.ID)
-	require.Equal(t, event.Title, createdEvent.Title)
-	require.Equal(t, event.StartTime, createdEvent.StartTime)
+	require.NotEmpty(t, createdEvent.ID)
+	require.Equal(t, req.Title, createdEvent.Title)
+	require.Equal(t, startTime, createdEvent.StartTime)
 
-	resp, err = http.Get(fmt.Sprintf("%s/events/day?time=%s", apiURL, startTime.Format(time.RFC3339)))
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	t.Run("list by day", func(t *testing.T) {
+		url := fmt.Sprintf("%s/events?user_id=%s&start_date=%s&period=day",
+			apiURL, testUserID, startTime.Format(time.RFC3339))
+		resp, err := http.Get(url)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var events []Event
-	err = json.NewDecoder(resp.Body).Decode(&events)
-	require.NoError(t, err)
-	resp.Body.Close()
+		var events []Event
+		err = json.NewDecoder(resp.Body).Decode(&events)
+		require.NoError(t, err)
+		resp.Body.Close()
 
-	require.GreaterOrEqual(t, len(events), 1)
-	var found bool
-	for _, e := range events {
-		if e.ID == createdEvent.ID {
-			found = true
-			break
-		}
-	}
-	require.True(t, found)
+		require.GreaterOrEqual(t, len(events), 1)
+		found := containsEvent(events, createdEvent.ID)
+		require.True(t, found, "created event not found in day listing")
+	})
+
+	t.Run("list by week", func(t *testing.T) {
+		url := fmt.Sprintf("%s/events?user_id=%s&start_date=%s&period=week",
+			apiURL, testUserID, startTime.Format(time.RFC3339))
+		resp, err := http.Get(url)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var events []Event
+		err = json.NewDecoder(resp.Body).Decode(&events)
+		require.NoError(t, err)
+		resp.Body.Close()
+
+		require.GreaterOrEqual(t, len(events), 1)
+		require.True(t, containsEvent(events, createdEvent.ID), "created event not found in week listing")
+	})
+
+	t.Run("list by month", func(t *testing.T) {
+		url := fmt.Sprintf("%s/events?user_id=%s&start_date=%s&period=month",
+			apiURL, testUserID, startTime.Format(time.RFC3339))
+		resp, err := http.Get(url)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var events []Event
+		err = json.NewDecoder(resp.Body).Decode(&events)
+		require.NoError(t, err)
+		resp.Body.Close()
+
+		require.GreaterOrEqual(t, len(events), 1)
+		require.True(t, containsEvent(events, createdEvent.ID), "created event not found in month listing")
+	})
 }
 
+// containsEvent returns true if the event with the given ID is in the list.
+func containsEvent(events []Event, id string) bool {
+	for _, e := range events {
+		if e.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+// TestAPIErrorHandling tests that the API returns proper error codes for invalid input.
 func TestAPIErrorHandling(t *testing.T) {
 	apiURL := getCalendarAPIURL()
+	waitForCalendar(t, apiURL)
+
+	now := time.Now().UTC()
 
 	testCases := []struct {
-		name          string
-		event         Event
-		expectedCode  int
+		name         string
+		req          CreateEventRequest
+		expectedCode int
 	}{
 		{
 			name: "End time before start time",
-			event: Event{
+			req: CreateEventRequest{
 				Title:     "Invalid Event",
-				StartTime: time.Now().Add(2 * time.Hour),
-				EndTime:   time.Now().Add(1 * time.Hour),
+				UserID:    "test-user-err",
+				StartTime: now.Add(2 * time.Hour),
+				EndTime:   now.Add(1 * time.Hour),
 			},
 			expectedCode: http.StatusBadRequest,
 		},
 		{
 			name: "Missing title",
-			event: Event{
-				StartTime: time.Now().Add(1 * time.Hour),
-				EndTime:   time.Now().Add(2 * time.Hour),
+			req: CreateEventRequest{
+				UserID:    "test-user-err",
+				StartTime: now.Add(1 * time.Hour),
+				EndTime:   now.Add(2 * time.Hour),
+			},
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			name: "Missing user_id",
+			req: CreateEventRequest{
+				Title:     "Event Without User",
+				StartTime: now.Add(1 * time.Hour),
+				EndTime:   now.Add(2 * time.Hour),
 			},
 			expectedCode: http.StatusBadRequest,
 		},
@@ -124,7 +212,7 @@ func TestAPIErrorHandling(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			bodyBytes, err := json.Marshal(tc.event)
+			bodyBytes, err := json.Marshal(tc.req)
 			require.NoError(t, err)
 
 			resp, err := http.Post(apiURL+"/events", "application/json", bytes.NewBuffer(bodyBytes))
@@ -135,11 +223,15 @@ func TestAPIErrorHandling(t *testing.T) {
 	}
 }
 
+// TestEndToEndNotificationFlow creates an event with a short notify_before,
+// waits for the scheduler to send a notification to Kafka, and then checks
+// that the storer has persisted it to the notifications table.
 func TestEndToEndNotificationFlow(t *testing.T) {
 	ctx := context.Background()
 	apiURL := getCalendarAPIURL()
-	dbURL := getDBConnectionString()
+	waitForCalendar(t, apiURL)
 
+	dbURL := getDBConnectionString()
 	pool, err := pgxpool.Connect(ctx, dbURL)
 	require.NoError(t, err)
 	defer pool.Close()
@@ -147,16 +239,23 @@ func TestEndToEndNotificationFlow(t *testing.T) {
 	err = pool.Ping(ctx)
 	require.NoError(t, err, "failed to connect to database")
 
-	startTime := time.Now().Add(5 * time.Second).UTC().Truncate(time.Second)
-	event := Event{
-		Title:       "E2E Test Event",
-		Description: "Test for scheduler and storer",
-		StartTime:   startTime,
-		EndTime:     startTime.Add(30 * time.Minute),
-		NotifyBefore: 5 * time.Second,
+	const testUserID = "integration-test-user-e2e"
+
+	// Планировщик в интеграционных тестах сканирует каждые 10 секунд (scheduler_config_integration.yaml).
+	// Создаём событие с notify_before=30s и start_time=1 минута от текущего момента,
+	// чтобы планировщик гарантированно его поймал.
+	startTime := time.Now().Add(1 * time.Minute).UTC().Truncate(time.Second)
+	notifyBefore := int64(30 * time.Second) // 30 секунд в наносекундах
+
+	req := CreateEventRequest{
+		Title:        "E2E Test Event",
+		UserID:       testUserID,
+		StartTime:    startTime,
+		EndTime:      startTime.Add(30 * time.Minute),
+		NotifyBefore: &notifyBefore,
 	}
 
-	bodyBytes, err := json.Marshal(event)
+	bodyBytes, err := json.Marshal(req)
 	require.NoError(t, err)
 
 	resp, err := http.Post(apiURL+"/events", "application/json", bytes.NewBuffer(bodyBytes))
@@ -168,16 +267,32 @@ func TestEndToEndNotificationFlow(t *testing.T) {
 	require.NoError(t, err)
 	resp.Body.Close()
 
-	require.NotZero(t, createdEvent.ID)
+	require.NotEmpty(t, createdEvent.ID)
+	t.Logf("Created event with ID: %s, waiting for notification to appear in DB...", createdEvent.ID)
 
+	// Ждём максимум 60 секунд — планировщик сканирует каждые 10 секунд.
 	var notification Notification
 	require.Eventually(t, func() bool {
-		query := `SELECT id, event_id, message, created_at FROM notifications WHERE event_id = $1`
+		// The notifications table schema: id (UUID), event_id, title, start_time, user_id, created_at
+		query := `SELECT id, event_id, title, start_time, user_id, created_at
+		          FROM notifications WHERE event_id = $1`
 		row := pool.QueryRow(ctx, query, createdEvent.ID)
-		err := row.Scan(&notification.ID, &notification.EventID, &notification.Message, &notification.CreatedAt)
-		return err == nil
-	}, 90*time.Second, 5*time.Second, "notification did not appear in the database")
+		err := row.Scan(
+			&notification.ID,
+			&notification.EventID,
+			&notification.Title,
+			&notification.StartTime,
+			&notification.UserID,
+			&notification.CreatedAt,
+		)
+		if err != nil {
+			t.Logf("notification not yet in DB: %v", err)
+			return false
+		}
+		return true
+	}, 90*time.Second, 5*time.Second, "notification did not appear in the database within 90 seconds")
 
 	require.Equal(t, createdEvent.ID, notification.EventID)
-	require.Contains(t, notification.Message, createdEvent.Title)
+	require.Equal(t, createdEvent.Title, notification.Title)
+	require.Equal(t, testUserID, notification.UserID)
 }

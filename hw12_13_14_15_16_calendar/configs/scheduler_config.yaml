@@ -5,7 +5,7 @@ storage:
   type: "sql"
 
 database:
-  host: "localhost"
+  host: "postgres"
   port: 5432
   user: "calendar"
   password: "calendar"
@@ -13,7 +13,7 @@ database:
 
 kafka:
   bootstrapServers:
-    - "localhost:9092"
+    - "kafka:9090"
   topic: "calendar_notifications"
 
 scheduler:
