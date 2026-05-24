@@ -1,8 +1,9 @@
 # syntax=docker/dockerfile:1
-FROM golang:1.22-alpine
+FROM golang:1.23-alpine
 
 WORKDIR /app
 
+COPY go.mod go.sum ./
 RUN go install github.com/pressly/goose/v3/cmd/goose@v3.20.0
 
 COPY migrations ./migrations
