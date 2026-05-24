@@ -2,6 +2,8 @@ BIN := "./bin/calendar"
 SCHEDULER_BIN := "./bin/calendar_scheduler"
 STORER_BIN := "./bin/calendar_storer"
 DOCKER_IMG="calendar:develop"
+DOCKER_COMPOSE_FILE = "docker/docker-compose.yml"
+DOCKER_COMPOSE_INT_FILE = "docker/docker-compose.integration.yml"
 
 # Переменная для goose, чтобы не дублировать строку подключения
 DB_STRING="postgres://calendar:calendar@localhost:5432/calendar?sslmode=disable"
@@ -9,6 +11,16 @@ DB_STRING="postgres://calendar:calendar@localhost:5432/calendar?sslmode=disable"
 GIT_HASH := $(shell git log --format="%h" -n 1)
 BUILD_DATE := $(shell date -u +%Y-%m-%dT%H:%M:%S)
 LDFLAGS := -X main.release="develop" -X main.buildDate=$(BUILD_DATE) -X main.gitHash=$(GIT_HASH)
+
+up:
+	docker-compose -f $(DOCKER_COMPOSE_FILE) up -d --build
+
+down:
+	docker-compose -f $(DOCKER_COMPOSE_FILE) down
+
+integration-tests:
+	docker-compose -f $(DOCKER_COMPOSE_INT_FILE) up --build --abort-on-container-exit --exit-code-from integration-tests
+	docker-compose -f $(DOCKER_COMPOSE_INT_FILE) down -v
 
 build: build-calendar build-scheduler build-storer
 build-calendar:
@@ -72,4 +84,4 @@ migrate-status:
 clean:
 	rm -rf ./bin
 
-.PHONY: build build-calendar build-scheduler build-storer run run-scheduler run-storer build-img run-img version test lint migrate-up migrate-down migrate-reset migrate-status clean start
+.PHONY: build build-calendar build-scheduler build-storer run run-scheduler run-storer build-img run-img version test lint migrate-up migrate-down migrate-reset migrate-status clean start up down integration-tests

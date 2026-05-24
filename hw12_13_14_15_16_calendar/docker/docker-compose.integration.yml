@@ -1,40 +1,26 @@
 services:
   kafka:
     image: 'docker.io/bitnamilegacy/kafka:4.0.0-debian-12-r10'
-    container_name: kafkabuild
+    container_name: kafkabuild-int
     ports:
-      - "9092:9092"
+      - "9093:9092"
     environment:
-      # KRaft settings
       - KAFKA_CFG_NODE_ID=1
       - KAFKA_KRAFT_CLUSTER_ID=NkYjFusjSuWA2E5FhAC9Pg
       - KAFKA_CFG_PROCESS_ROLES=controller,broker
-      # Listeners
       - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9091
       - KAFKA_CFG_LISTENERS=PLAINTEXT://:9090,CONTROLLER://:9091,EXTERNAL://:9092
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9090,EXTERNAL://localhost:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9090,EXTERNAL://localhost:9093
       - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
     volumes:
-      - kraft_combined_logs:/bitnami/kafka
+      - kraft_combined_logs_int:/bitnami/kafka
     networks:
-      - app
-
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    ports:
-      - "8080:8080"
-    environment:
-      - KAFKA_CLUSTERS_0_NAME=local
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9090
-    depends_on:
-      - kafka
-    networks:
-      - app
+      - app_int
 
   postgres:
-    container_name: postgrescalendar
+    container_name: postgrescalendar-int
     image: postgres:16-alpine
     restart: "no"
     environment:
@@ -43,20 +29,22 @@ services:
       POSTGRES_PASSWORD: "calendar"
       PGDATA: "/var/lib/postgresql/data/pgdata"
     volumes:
-      - pg_data_calendar:/var/lib/postgresql/data
+      - pg_data_calendar_int:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432"
     networks:
-      - app
+      - app_int
 
   migration:
     build:
       context: ..
       dockerfile: docker/migration.Dockerfile
+    environment:
+      - DB_STRING=postgres://calendar:calendar@postgres:5432/calendar?sslmode=disable
     depends_on:
       - postgres
     networks:
-      - app
+      - app_int
     restart: "no"
 
   calendar:
@@ -64,13 +52,13 @@ services:
       context: ..
       dockerfile: docker/calendar.Dockerfile
     ports:
-      - "8888:8888"
+      - "8889:8888"
     depends_on:
       - postgres
       - kafka
       - migration
     networks:
-      - app
+      - app_int
 
   scheduler:
     build:
@@ -81,7 +69,7 @@ services:
       - kafka
       - migration
     networks:
-      - app
+      - app_int
 
   storer:
     build:
@@ -92,12 +80,23 @@ services:
       - kafka
       - migration
     networks:
-      - app
+      - app_int
+
+  integration-tests:
+    build:
+      context: ..
+      dockerfile: docker/integration-tests.Dockerfile
+    depends_on:
+      - calendar
+    networks:
+      - app_int
+    environment:
+      - CALENDAR_API_URL=http://calendar:8888
 
 networks:
-  app:
+  app_int:
     driver: bridge
 
 volumes:
-  pg_data_calendar:
-  kraft_combined_logs:
+  pg_data_calendar_int:
+  kraft_combined_logs_int:
