@@ -20,6 +20,8 @@ RUN apk add --no-cache netcat-openbsd
 COPY --from=builder /app/calendar /calendar
 COPY --from=builder /app/configs/config.yaml /config.yaml
 COPY --from=builder /app/migrations /migrations
+# Копируем директорию с документацией Swagger
+COPY --from=builder /app/swagger /swagger
 COPY docker/scripts/wait-for-it.sh /wait-for-it.sh
 RUN chmod +x /wait-for-it.sh
 

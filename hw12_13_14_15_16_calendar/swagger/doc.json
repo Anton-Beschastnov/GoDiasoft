@@ -5,7 +5,7 @@
     "description": "REST API для сервиса календаря",
     "version": "1.0.0"
   },
-  "host": "localhost:8081",
+  "host": "localhost:8888",
   "schemes": [
     "http"
   ],
