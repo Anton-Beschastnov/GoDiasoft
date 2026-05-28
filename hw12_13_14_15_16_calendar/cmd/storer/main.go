@@ -42,8 +42,15 @@ func main() {
 
 	// Metrics server
 	go func() {
-		http.Handle("/metrics", promhttp.Handler())
-		if err := http.ListenAndServe(":9093", nil); err != nil {
+		mux := http.NewServeMux()
+		mux.Handle("/metrics", promhttp.Handler())
+		srv := &http.Server{
+			Addr:              ":9093",
+			Handler:           mux,
+			ReadHeaderTimeout: 5 * time.Second,
+			WriteTimeout:      10 * time.Second,
+		}
+		if err := srv.ListenAndServe(); err != nil {
 			logg.Error("metrics server error", "error", err)
 		}
 	}()

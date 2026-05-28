@@ -40,7 +40,7 @@ func (s *Server) metricsMiddleware(next http.Handler) http.Handler {
 			routePattern = "unknown"
 		}
 
-		metrics.HttpRequestsTotal.WithLabelValues(r.Method, routePattern, strconv.Itoa(ww.Status())).Inc()
-		metrics.HttpRequestDuration.WithLabelValues(r.Method, routePattern).Observe(duration.Seconds())
+		metrics.HTTPRequestsTotal.WithLabelValues(r.Method, routePattern, strconv.Itoa(ww.Status())).Inc()
+		metrics.HTTPRequestDuration.WithLabelValues(r.Method, routePattern).Observe(duration.Seconds())
 	})
 }
