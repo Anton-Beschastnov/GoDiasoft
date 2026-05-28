@@ -56,3 +56,70 @@
 - **Отказоустойчивость:** Если `storer` упадет, `scheduler` продолжит генерировать уведомления в Kafka. Когда `storer` поднимется, он обработает накопившиеся сообщения без потери данных.
 - **Масштабируемость:** Мы можем запустить несколько экземпляров `storer`, чтобы быстрее обрабатывать большую очередь уведомлений (через механизм Consumer Groups в Kafka).
 - **Слабая связанность:** `calendar` и `scheduler` ничего не знают о том, как именно отправляются/сохраняются уведомления. Логику `storer` можно полностью переписать без ущерба для остальных компонентов.
+
+## Мониторинг
+
+Все три сервиса инструментированы с помощью [`prometheus/client_golang`](https://github.com/prometheus/client_golang). Каждый сервис экспонирует эндпоинт `/metrics` в формате Prometheus.
+
+| Сервис    | Адрес метрик                   |
+|-----------|--------------------------------|
+| calendar  | `http://calendar:8888/metrics` |
+| scheduler | `http://scheduler:9101/metrics` |
+| storer    | `http://storer:9093/metrics`   |
+
+Prometheus поднимается в составе `docker-compose.yml` и scrape'ит все три сервиса автоматически (`configs/prometheus.yml`).
+
+### Метрики HTTP-слоя (`calendar`)
+
+| Метрика | Тип | Лейблы | Назначение |
+|---|---|---|---|
+| `http_requests_total` | Counter | `method`, `path`, `status` | Общее число запросов, в т.ч. ошибочных. Позволяет считать RPS и error rate по каждому эндпоинту. |
+| `http_request_duration_seconds` | Histogram | `method`, `path` | Латентность обработки. Используется для построения перцентилей p50/p95/p99. |
+
+Собирается автоматически в `metricsMiddleware`, который оборачивает все роуты.
+
+### Метрики бизнес-событий (`calendar`)
+
+| Метрика | Тип | Назначение |
+|---|---|---|
+| `events_created_total` | Counter | Число созданных событий — индикатор пользовательской активности. |
+| `events_updated_total` | Counter | Число обновлений событий. |
+| `events_deleted_total` | Counter | Число удалений. Вместе с `created` отражает «оборот» событий. |
+
+### Метрики планировщика (`scheduler`)
+
+| Метрика | Тип | Лейблы | Назначение |
+|---|---|---|---|
+| `scheduler_runs_total` | Counter | `status` (`success`/`error`) | Счётчик итераций. Рост `error` — сигнал о проблеме с БД или Kafka. |
+| `notifications_sent_total` | Counter | `status` (`success`/`error`) | Число уведомлений, отправленных в Kafka. |
+
+### Метрики хранителя (`storer`)
+
+| Метрика | Тип | Лейблы | Назначение |
+|---|---|---|---|
+| `notifications_saved_total` | Counter | `status` (`success`/`error`) | Число уведомлений, сохранённых в БД из Kafka. Позволяет проверить работу всего pipeline end-to-end. |
+
+### Полезные PromQL-запросы
+
+```promql
+# RPS по эндпоинтам
+rate(http_requests_total[1m])
+
+# Error rate (доля 5xx)
+rate(http_requests_total{status=~"5.."}[1m]) / rate(http_requests_total[1m])
+
+# p95 латентность
+histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+
+# Скорость создания событий
+rate(events_created_total[5m])
+
+# Ошибки планировщика
+rate(scheduler_runs_total{status="error"}[5m])
+
+# Проверка end-to-end pipeline уведомлений (sent vs saved)
+rate(notifications_sent_total{status="success"}[5m])
+rate(notifications_saved_total{status="success"}[5m])
+```
+
+> Если `notifications_sent_total` растёт, а `notifications_saved_total` нет — узкое место в `storer` или БД.
