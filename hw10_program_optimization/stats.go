@@ -1,66 +1,77 @@
 package hw10programoptimization
 
 import (
-	"encoding/json"
-	"fmt"
+	"bufio"
 	"io"
-	"regexp"
 	"strings"
-)
+	"sync"
 
-type User struct {
-	ID       int
-	Name     string
-	Username string
-	Email    string
-	Phone    string
-	Password string
-	Address  string
-}
+	jsoniter "github.com/json-iterator/go"
+)
 
 type DomainStat map[string]int
 
-func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
-	u, err := getUsers(r)
-	if err != nil {
-		return nil, fmt.Errorf("get users error: %w", err)
-	}
-	return countDomains(u, domain)
+var iterPool = &sync.Pool{
+	New: func() interface{} {
+		return jsoniter.NewIterator(jsoniter.ConfigFastest)
+	},
 }
 
-type users [100_000]User
+func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
+	result := make(DomainStat)
+	domainSuffix := "." + domain
 
-func getUsers(r io.Reader) (result users, err error) {
-	content, err := io.ReadAll(r)
-	if err != nil {
-		return
+	scanner := bufio.NewScanner(r)
+	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
+
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if len(line) == 0 {
+			continue
+		}
+
+		email := parseEmail(line)
+		if email == "" {
+			continue
+		}
+
+		if !hasSuffixFold(email, domainSuffix) {
+			continue
+		}
+
+		atPos := strings.LastIndexByte(email, '@')
+		if atPos == -1 {
+			continue
+		}
+
+		result[strings.ToLower(email[atPos+1:])]++
 	}
 
-	lines := strings.Split(string(content), "\n")
-	for i, line := range lines {
-		var user User
-		if err = json.Unmarshal([]byte(line), &user); err != nil {
-			return
+	return result, scanner.Err()
+}
+
+func parseEmail(line []byte) (email string) {
+	iter := iterPool.Get().(*jsoniter.Iterator)
+	iter.ResetBytes(line)
+
+	iter.ReadObjectCB(func(iter *jsoniter.Iterator, field string) bool {
+		if field == "Email" {
+			email = iter.ReadString()
+		} else {
+			iter.Skip()
 		}
-		result[i] = user
+		return true
+	})
+
+	if iter.Error == nil {
+		iterPool.Put(iter)
 	}
 	return
 }
 
-func countDomains(u users, domain string) (DomainStat, error) {
-	result := make(DomainStat)
-
-	for _, user := range u {
-		matched, err := regexp.Match("\\."+domain, []byte(user.Email))
-		if err != nil {
-			return nil, err
-		}
-
-		if matched {
-			num := result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])]
-			num++
-			result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])] = num
-		}
+func hasSuffixFold(s, suffix string) bool {
+	if len(s) < len(suffix) {
+		return false
 	}
-	return result, nil
+	return strings.EqualFold(s[len(s)-len(suffix):], suffix)
 }
