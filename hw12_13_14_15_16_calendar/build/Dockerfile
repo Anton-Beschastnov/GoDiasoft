@@ -1,36 +1,47 @@
-# Собираем в гошке
-FROM golang:1.19 as build
+# Build stage
+FROM golang:1.22 as build
 
-ENV BIN_FILE /opt/calendar/calendar-app
+ARG APP_NAME
+ENV BIN_FILE /opt/calendar/${APP_NAME}
 ENV CODE_DIR /go/src/
 
 WORKDIR ${CODE_DIR}
 
-# Кэшируем слои с модулями
+# Cache modules
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
 
 COPY . ${CODE_DIR}
 
-# Собираем статический бинарник Go (без зависимостей на Си API),
-# иначе он не будет работать в alpine образе.
+# Build the Go binary
 ARG LDFLAGS
 RUN CGO_ENABLED=0 go build \
         -ldflags "$LDFLAGS" \
-        -o ${BIN_FILE} cmd/calendar/*
+        -o ${BIN_FILE} cmd/${APP_NAME}/*.go
 
-# На выходе тонкий образ
-FROM alpine:3.9
+# Final stage
+FROM alpine:3.15
 
+ARG APP_NAME
 LABEL ORGANIZATION="OTUS Online Education"
-LABEL SERVICE="calendar"
+LABEL SERVICE=${APP_NAME}
 LABEL MAINTAINERS="student@otus.ru"
 
-ENV BIN_FILE "/opt/calendar/calendar-app"
+RUN apk add --no-cache gettext
+
+ENV BIN_FILE "/opt/calendar/${APP_NAME}"
 COPY --from=build ${BIN_FILE} ${BIN_FILE}
 
-ENV CONFIG_FILE /etc/calendar/config.toml
-COPY ./configs/config.toml ${CONFIG_FILE}
+ENV CONFIG_TEMPLATE /etc/calendar/config.yaml.template
+ENV CONFIG_FILE /etc/calendar/config.yaml
 
+COPY build/entrypoint.sh /opt/entrypoint.sh
+RUN chmod +x /opt/entrypoint.sh
+
+# We will mount migrations for the calendar service, but let's copy them anyway
+COPY migrations /opt/calendar/migrations
+WORKDIR /opt/calendar
+
+ENTRYPOINT ["/opt/entrypoint.sh"]
 CMD ${BIN_FILE} -config ${CONFIG_FILE}
