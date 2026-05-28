@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,6 +15,7 @@ import (
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/logger"
 	sqlstorage "github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/storage/sql"
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/storer"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var configFile string
@@ -37,6 +39,14 @@ func main() {
 	}
 
 	logg := logger.New(config.Logger.Level, os.Stdout)
+
+	// Metrics server
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		if err := http.ListenAndServe(":9093", nil); err != nil {
+			logg.Error("metrics server error", "error", err)
+		}
+	}()
 
 	// Подключение к базе данных
 	var storage app.Storage

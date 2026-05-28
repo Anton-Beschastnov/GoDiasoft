@@ -7,6 +7,7 @@ import (
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/app"
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/kafka"
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/logger"
+	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/metrics"
 )
 
 type Config struct {
@@ -46,6 +47,9 @@ func (s *Scheduler) Run(ctx context.Context) error {
 		case <-ticker.C:
 			if err := s.runOnce(ctx, time.Now().UTC()); err != nil {
 				s.logger.Error("scheduler error", "error", err)
+				metrics.SchedulerRuns.WithLabelValues("error").Inc()
+			} else {
+				metrics.SchedulerRuns.WithLabelValues("success").Inc()
 			}
 		}
 	}
@@ -81,8 +85,10 @@ func (s *Scheduler) runOnce(ctx context.Context, now time.Time) error {
 
 		if err := s.producer.Send(ctx, topic, notification); err != nil {
 			s.logger.Error("failed to send notification", "event_id", event.ID, "user_id", event.UserID, "error", err)
+			metrics.NotificationsSent.WithLabelValues("error").Inc()
 		} else {
 			s.logger.Info("SENT notification", "event_id", event.ID, "user_id", event.UserID)
+			metrics.NotificationsSent.WithLabelValues("success").Inc()
 		}
 	}
 

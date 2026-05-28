@@ -8,6 +8,7 @@ import (
 
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/api"
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/logger"
+	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/metrics"
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/storage"
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -139,6 +140,7 @@ func (h *CalendarHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	metrics.EventsCreated.Inc()
 	h.logger.Info("event created", "id", event.ID)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -213,6 +215,7 @@ func (h *CalendarHandler) UpdateEvent(w http.ResponseWriter, r *http.Request, id
 		return
 	}
 
+	metrics.EventsUpdated.Inc()
 	h.logger.Info("event updated", "id", id)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -235,6 +238,7 @@ func (h *CalendarHandler) DeleteEvent(w http.ResponseWriter, r *http.Request, id
 		return
 	}
 
+	metrics.EventsDeleted.Inc()
 	h.logger.Info("event deleted", "id", id)
 
 	w.WriteHeader(http.StatusNoContent)

@@ -8,6 +8,7 @@ import (
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/app"
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/kafka"
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/logger"
+	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/metrics"
 	"github.com/Anton-Beschastnov/GoDiasoft/hw12_13_14_15_16_calendar/internal/storage"
 )
 
@@ -62,9 +63,11 @@ func (s *Storer) saveNotification(ctx context.Context, notification *kafka.Notif
 	}
 
 	if err := s.storage.SaveNotification(ctx, dbNotification); err != nil {
+		metrics.NotificationsSaved.WithLabelValues("error").Inc()
 		return fmt.Errorf("failed to save notification: %w", err)
 	}
 
+	metrics.NotificationsSaved.WithLabelValues("success").Inc()
 	s.logger.Info("notification saved",
 		"event_id", notification.EventID,
 		"user_id", notification.UserID,
