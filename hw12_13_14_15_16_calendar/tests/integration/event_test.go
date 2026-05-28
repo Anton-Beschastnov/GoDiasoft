@@ -65,7 +65,11 @@ func getDBConnectionString() string {
 func waitForCalendar(t *testing.T, apiURL string) {
 	t.Helper()
 	require.Eventually(t, func() bool {
-		resp, err := http.Get(apiURL + "/events?user_id=health&start_date=" + time.Now().Format(time.RFC3339))
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, apiURL+"/events?user_id=health&start_date="+time.Now().Format(time.RFC3339), nil)
+		if err != nil {
+			return false
+		}
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return false
 		}
@@ -85,17 +89,21 @@ func TestEventHappyPath(t *testing.T) {
 	startTime := time.Now().Add(1 * time.Hour).UTC().Truncate(time.Second)
 	endTime := startTime.Add(1 * time.Hour)
 
-	req := CreateEventRequest{
+	reqBody := CreateEventRequest{
 		Title:     "Important Meeting",
 		StartTime: startTime,
 		EndTime:   endTime,
 		UserID:    testUserID,
 	}
 
-	bodyBytes, err := json.Marshal(req)
+	bodyBytes, err := json.Marshal(reqBody)
 	require.NoError(t, err)
 
-	resp, err := http.Post(apiURL+"/events", "application/json", bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, apiURL+"/events", bytes.NewBuffer(bodyBytes))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
 
@@ -105,20 +113,24 @@ func TestEventHappyPath(t *testing.T) {
 	resp.Body.Close()
 
 	require.NotEmpty(t, createdEvent.ID)
-	require.Equal(t, req.Title, createdEvent.Title)
+	require.Equal(t, reqBody.Title, createdEvent.Title)
 	require.Equal(t, startTime, createdEvent.StartTime)
 
 	t.Run("list by day", func(t *testing.T) {
 		url := fmt.Sprintf("%s/events?user_id=%s&start_date=%s&period=day",
 			apiURL, testUserID, startTime.Format(time.RFC3339))
-		resp, err := http.Get(url)
+		
+		getReq, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp.StatusCode)
+		
+		getResp, err := http.DefaultClient.Do(getReq)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, getResp.StatusCode)
 
 		var events []Event
-		err = json.NewDecoder(resp.Body).Decode(&events)
+		err = json.NewDecoder(getResp.Body).Decode(&events)
 		require.NoError(t, err)
-		resp.Body.Close()
+		getResp.Body.Close()
 
 		require.GreaterOrEqual(t, len(events), 1)
 		found := containsEvent(events, createdEvent.ID)
@@ -128,14 +140,18 @@ func TestEventHappyPath(t *testing.T) {
 	t.Run("list by week", func(t *testing.T) {
 		url := fmt.Sprintf("%s/events?user_id=%s&start_date=%s&period=week",
 			apiURL, testUserID, startTime.Format(time.RFC3339))
-		resp, err := http.Get(url)
+
+		getReq, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		getResp, err := http.DefaultClient.Do(getReq)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, getResp.StatusCode)
 
 		var events []Event
-		err = json.NewDecoder(resp.Body).Decode(&events)
+		err = json.NewDecoder(getResp.Body).Decode(&events)
 		require.NoError(t, err)
-		resp.Body.Close()
+		getResp.Body.Close()
 
 		require.GreaterOrEqual(t, len(events), 1)
 		require.True(t, containsEvent(events, createdEvent.ID), "created event not found in week listing")
@@ -144,14 +160,18 @@ func TestEventHappyPath(t *testing.T) {
 	t.Run("list by month", func(t *testing.T) {
 		url := fmt.Sprintf("%s/events?user_id=%s&start_date=%s&period=month",
 			apiURL, testUserID, startTime.Format(time.RFC3339))
-		resp, err := http.Get(url)
+		
+		getReq, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		getResp, err := http.DefaultClient.Do(getReq)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, getResp.StatusCode)
 
 		var events []Event
-		err = json.NewDecoder(resp.Body).Decode(&events)
+		err = json.NewDecoder(getResp.Body).Decode(&events)
 		require.NoError(t, err)
-		resp.Body.Close()
+		getResp.Body.Close()
 
 		require.GreaterOrEqual(t, len(events), 1)
 		require.True(t, containsEvent(events, createdEvent.ID), "created event not found in month listing")
@@ -215,7 +235,11 @@ func TestAPIErrorHandling(t *testing.T) {
 			bodyBytes, err := json.Marshal(tc.req)
 			require.NoError(t, err)
 
-			resp, err := http.Post(apiURL+"/events", "application/json", bytes.NewBuffer(bodyBytes))
+			postReq, err := http.NewRequestWithContext(context.Background(), http.MethodPost, apiURL+"/events", bytes.NewBuffer(bodyBytes))
+			require.NoError(t, err)
+			postReq.Header.Set("Content-Type", "application/json")
+
+			resp, err := http.DefaultClient.Do(postReq)
 			require.NoError(t, err)
 			resp.Body.Close()
 			require.Equal(t, tc.expectedCode, resp.StatusCode)
@@ -247,7 +271,7 @@ func TestEndToEndNotificationFlow(t *testing.T) {
 	startTime := time.Now().Add(1 * time.Minute).UTC().Truncate(time.Second)
 	notifyBefore := int64(30 * time.Second) // 30 секунд в наносекундах
 
-	req := CreateEventRequest{
+	reqBody := CreateEventRequest{
 		Title:        "E2E Test Event",
 		UserID:       testUserID,
 		StartTime:    startTime,
@@ -255,10 +279,14 @@ func TestEndToEndNotificationFlow(t *testing.T) {
 		NotifyBefore: &notifyBefore,
 	}
 
-	bodyBytes, err := json.Marshal(req)
+	bodyBytes, err := json.Marshal(reqBody)
 	require.NoError(t, err)
 
-	resp, err := http.Post(apiURL+"/events", "application/json", bytes.NewBuffer(bodyBytes))
+	postReq, err := http.NewRequestWithContext(context.Background(), http.MethodPost, apiURL+"/events", bytes.NewBuffer(bodyBytes))
+	require.NoError(t, err)
+	postReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(postReq)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
 
@@ -270,7 +298,7 @@ func TestEndToEndNotificationFlow(t *testing.T) {
 	require.NotEmpty(t, createdEvent.ID)
 	t.Logf("Created event with ID: %s, waiting for notification to appear in DB...", createdEvent.ID)
 
-	// Ждём максимум 60 секунд — планировщик сканирует каждые 10 секунд.
+	// Ждём максимум 90 секунд — планировщик сканирует каждые 10 секунд.
 	var notification Notification
 	require.Eventually(t, func() bool {
 		// The notifications table schema: id (UUID), event_id, title, start_time, user_id, created_at
