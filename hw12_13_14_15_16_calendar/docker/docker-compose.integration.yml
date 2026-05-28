@@ -1,0 +1,127 @@
+services:
+  kafka:
+    image: 'docker.io/bitnamilegacy/kafka:4.0.0-debian-12-r10'
+    container_name: kafkabuild-int
+    ports:
+      - "9093:9092"
+    environment:
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_KRAFT_CLUSTER_ID=NkYjFusjSuWA2E5FhAC9Pg
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9091
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9090,CONTROLLER://:9091,EXTERNAL://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9090,EXTERNAL://localhost:9093
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+    volumes:
+      - kraft_combined_logs_int:/bitnami/kafka
+    networks:
+      - app_int
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9090", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+
+  postgres:
+    container_name: postgrescalendar-int
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: "calendar"
+      POSTGRES_USER: "calendar"
+      POSTGRES_PASSWORD: "calendar"
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    volumes:
+      - pg_data_calendar_int:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - app_int
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U calendar -d calendar"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # calendar сам запускает goose-миграции при старте (cmd/calendar/main.go → runMigrations)
+  # отдельный migration-контейнер не нужен — он завершается с кодом 0 и рушит весь стек
+  # через флаг --abort-on-container-exit
+
+  calendar:
+    build:
+      context: ..
+      dockerfile: docker/calendar.Dockerfile
+    ports:
+      - "8889:8888"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - app_int
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 8888"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+  scheduler:
+    build:
+      context: ..
+      dockerfile: docker/scheduler.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      calendar:
+        condition: service_healthy
+    networks:
+      - app_int
+    volumes:
+      - ../configs/scheduler_config_integration.yaml:/scheduler_config.yaml:ro
+
+  storer:
+    build:
+      context: ..
+      dockerfile: docker/storer.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      calendar:
+        condition: service_healthy
+    networks:
+      - app_int
+
+  integration-tests:
+    build:
+      context: ..
+      dockerfile: docker/integration-tests.Dockerfile
+    depends_on:
+      calendar:
+        condition: service_healthy
+      scheduler:
+        condition: service_started
+      storer:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    networks:
+      - app_int
+    environment:
+      - CALENDAR_API_URL=http://calendar:8888
+      - TEST_DB_STRING=postgres://calendar:calendar@postgres:5432/calendar?sslmode=disable
+
+networks:
+  app_int:
+    driver: bridge
+
+volumes:
+  pg_data_calendar_int:
+  kraft_combined_logs_int:

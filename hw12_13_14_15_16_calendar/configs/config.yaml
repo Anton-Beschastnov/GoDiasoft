@@ -1,0 +1,21 @@
+logger:
+  level: "info"
+
+http:
+  host: "0.0.0.0" # Слушаем на всех интерфейсах внутри контейнера
+  port: 8888
+
+storage:
+  type: "sql"
+
+db:
+  host: "postgres" # Используем имя сервиса из docker-compose
+  port: 5432
+  user: "calendar"
+  password: "calendar"
+  database: "calendar"
+
+kafka:
+  bootstrap_servers:
+    - "kafka:9090" # Используем имя сервиса из docker-compose
+  topic: "calendar_notifications"

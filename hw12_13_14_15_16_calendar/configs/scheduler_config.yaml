@@ -1,0 +1,21 @@
+logger:
+  level: "info"
+
+storage:
+  type: "sql"
+
+db:
+  host: "postgres"
+  port: 5432
+  user: "calendar"
+  password: "calendar"
+  database: "calendar"
+
+kafka:
+  bootstrapServers:
+    - "kafka:9090"
+  topic: "calendar_notifications"
+
+scheduler:
+  scanInterval: "1m"
+  kafkaTopic: "calendar_notifications"

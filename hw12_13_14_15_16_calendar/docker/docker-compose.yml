@@ -1,0 +1,120 @@
+services:
+  kafka:
+    image: 'docker.io/bitnamilegacy/kafka:4.0.0-debian-12-r10'
+    container_name: kafkabuild
+    ports:
+      - "9092:9092"
+    environment:
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_KRAFT_CLUSTER_ID=NkYjFusjSuWA2E5FhAC9Pg
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9091
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9090,CONTROLLER://:9091,EXTERNAL://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9090,EXTERNAL://localhost:9092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+    volumes:
+      - kraft_combined_logs:/bitnami/kafka
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9090", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9090
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - app
+
+  postgres:
+    container_name: postgrescalendar
+    image: postgres:16-alpine
+    restart: "no"
+    environment:
+      POSTGRES_DB: "calendar"
+      POSTGRES_USER: "calendar"
+      POSTGRES_PASSWORD: "calendar"
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    volumes:
+      - pg_data_calendar:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U calendar -d calendar"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  calendar:
+    build:
+      context: ..
+      dockerfile: docker/calendar.Dockerfile
+    ports:
+      - "8888:8888"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - app
+
+  scheduler:
+    build:
+      context: ..
+      dockerfile: docker/scheduler.Dockerfile
+    ports:
+      - "9101:9101"  # metrics endpoint (9091 зарезервирован Kafka CONTROLLER)
+    depends_on:
+      calendar:
+        condition: service_started
+    networks:
+      - app
+
+  storer:
+    build:
+      context: ..
+      dockerfile: docker/storer.Dockerfile
+    ports:
+      - "9093:9093"  # metrics endpoint
+    depends_on:
+      calendar:
+        condition: service_started
+    networks:
+      - app
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../configs/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - calendar
+      - scheduler
+      - storer
+    networks:
+      - app
+
+networks:
+  app:
+    driver: bridge
+
+volumes:
+  pg_data_calendar:
+  kraft_combined_logs:
