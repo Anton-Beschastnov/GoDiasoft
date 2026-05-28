@@ -4,7 +4,7 @@ logger:
 storage:
   type: "sql"
 
-database:
+db:
   host: "postgres"
   port: 5432
   user: "calendar"

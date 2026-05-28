@@ -8,7 +8,7 @@ http:
 storage:
   type: "sql"
 
-database:
+db:
   host: "postgres" # Используем имя сервиса из docker-compose
   port: 5432
   user: "calendar"

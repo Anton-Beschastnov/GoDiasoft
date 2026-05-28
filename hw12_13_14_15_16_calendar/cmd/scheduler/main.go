@@ -44,7 +44,7 @@ func main() {
 	// Metrics server
 	go func() {
 		http.Handle("/metrics", promhttp.Handler())
-		if err := http.ListenAndServe(":9091", nil); err != nil {
+		if err := http.ListenAndServe(":9101", nil); err != nil {
 			logg.Error("metrics server error", "error", err)
 		}
 	}()

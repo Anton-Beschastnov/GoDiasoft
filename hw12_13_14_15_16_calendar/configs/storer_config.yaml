@@ -1,7 +1,7 @@
 logger:
   level: "info"
 
-database:
+db:
   host: "postgres"
   port: 5432
   user: "calendar"

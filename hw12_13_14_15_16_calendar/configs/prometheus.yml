@@ -7,7 +7,7 @@ scrape_configs:
       - targets: ['calendar:8888']
   - job_name: 'scheduler'
     static_configs:
-      - targets: ['scheduler:9091']
+      - targets: ['scheduler:9101']
   - job_name: 'storer'
     static_configs:
       - targets: ['storer:9093']
