@@ -31,10 +31,10 @@ type Storage interface {
 // Notification представляет уведомление о событии.
 type Notification struct {
 	ID          string     `json:"id"`
-	EventID     string     `json:"eventId"`
+	EventID     string     `json:"event_id"`
 	Title       string     `json:"title"`
-	StartTime   time.Time  `json:"startTime"`
-	UserID      string     `json:"userId"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	ProcessedAt *time.Time `json:"processedAt,omitempty"`
+	StartTime   time.Time  `json:"start_time"`
+	UserID      string     `json:"user_id"`
+	CreatedAt   time.Time  `json:"created_at"`
+	ProcessedAt *time.Time `json:"processed_at,omitempty"`
 }

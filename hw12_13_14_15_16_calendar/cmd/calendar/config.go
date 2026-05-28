@@ -11,7 +11,7 @@ type Config struct {
 	Logger  LoggerConf  `yaml:"logger"`
 	HTTP    HTTPConf    `yaml:"http"`
 	Storage StorageConf `yaml:"storage"`
-	DB      DBConf      `yaml:"database"`
+	DB      DBConf      `yaml:"db"`
 }
 
 type LoggerConf struct {

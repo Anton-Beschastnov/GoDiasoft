@@ -8,7 +8,7 @@ import (
 
 type Config struct {
 	Logger LoggerConfig `yaml:"logger"`
-	DB     DBConfig     `yaml:"database"`
+	DB     DBConfig     `yaml:"db"`
 	Kafka  KafkaConfig  `yaml:"kafka"`
 	Storer StorerConfig `yaml:"storer"`
 }

@@ -65,7 +65,8 @@ func getDBConnectionString() string {
 func waitForCalendar(t *testing.T, apiURL string) {
 	t.Helper()
 	require.Eventually(t, func() bool {
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, apiURL+"/events?user_id=health&start_date="+time.Now().Format(time.RFC3339), nil)
+		targetURL := apiURL + "/events?user_id=health&start_date=" + time.Now().Format(time.RFC3339)
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, targetURL, nil)
 		if err != nil {
 			return false
 		}
@@ -119,10 +120,8 @@ func TestEventHappyPath(t *testing.T) {
 	t.Run("list by day", func(t *testing.T) {
 		url := fmt.Sprintf("%s/events?user_id=%s&start_date=%s&period=day",
 			apiURL, testUserID, startTime.Format(time.RFC3339))
-		
 		getReq, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 		require.NoError(t, err)
-		
 		getResp, err := http.DefaultClient.Do(getReq)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, getResp.StatusCode)
@@ -160,7 +159,6 @@ func TestEventHappyPath(t *testing.T) {
 	t.Run("list by month", func(t *testing.T) {
 		url := fmt.Sprintf("%s/events?user_id=%s&start_date=%s&period=month",
 			apiURL, testUserID, startTime.Format(time.RFC3339))
-		
 		getReq, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 		require.NoError(t, err)
 
@@ -235,7 +233,12 @@ func TestAPIErrorHandling(t *testing.T) {
 			bodyBytes, err := json.Marshal(tc.req)
 			require.NoError(t, err)
 
-			postReq, err := http.NewRequestWithContext(context.Background(), http.MethodPost, apiURL+"/events", bytes.NewBuffer(bodyBytes))
+			postReq, err := http.NewRequestWithContext(
+				context.Background(),
+				http.MethodPost,
+				apiURL+"/events",
+				bytes.NewBuffer(bodyBytes),
+			)
 			require.NoError(t, err)
 			postReq.Header.Set("Content-Type", "application/json")
 
@@ -282,7 +285,12 @@ func TestEndToEndNotificationFlow(t *testing.T) {
 	bodyBytes, err := json.Marshal(reqBody)
 	require.NoError(t, err)
 
-	postReq, err := http.NewRequestWithContext(context.Background(), http.MethodPost, apiURL+"/events", bytes.NewBuffer(bodyBytes))
+	postReq, err := http.NewRequestWithContext(
+		context.Background(),
+		http.MethodPost,
+		apiURL+"/events",
+		bytes.NewBuffer(bodyBytes),
+	)
 	require.NoError(t, err)
 	postReq.Header.Set("Content-Type", "application/json")
 

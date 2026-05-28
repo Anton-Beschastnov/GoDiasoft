@@ -6,10 +6,10 @@ import (
 )
 
 type Notification struct {
-	EventID   string    `json:"eventId"`
+	EventID   string    `json:"event_id"`
 	Title     string    `json:"title"`
-	StartTime time.Time `json:"startTime"`
-	UserID    string    `json:"userId"`
+	StartTime time.Time `json:"start_time"`
+	UserID    string    `json:"user_id"`
 }
 
 type ProducerInterface interface {
