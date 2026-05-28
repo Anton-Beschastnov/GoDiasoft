@@ -100,7 +100,12 @@ func TestEventHappyPath(t *testing.T) {
 	bodyBytes, err := json.Marshal(reqBody)
 	require.NoError(t, err)
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, apiURL+"/events", bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequestWithContext(
+		context.Background(),
+		http.MethodPost,
+		apiURL+"/events",
+		bytes.NewBuffer(bodyBytes),
+	)
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
